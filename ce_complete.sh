@@ -24,3 +24,18 @@ _ce_edit()
 	return 0
 }
 complete -F _ce_edit edc
+
+
+_ce_clice()
+{
+	local cur prev words cword
+	_init_completion || return
+
+
+	local opts="--help --version"
+#	COMPREPLY=( $( compgen -W "$opts" -- "$cur" ) )
+	COMPREPLY=( $( compgen -W "$opts" "$cur" ) )
+
+	return 0
+}
+complete -F _ce_clice clice
