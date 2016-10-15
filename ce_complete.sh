@@ -7,17 +7,18 @@ _ce_edit()
 	local cur prev words cword
 	_init_completion || return
 
-#TODO - should take up to the 1st underscore for the directory name or complete up to it?
-#		e.g. edc u[tab] could expand to edc ut_ if UT were the only matching source directory
+#TODO replace hard-coding my directory with a clice config home folder
 
-	if [[  ${#cur} > 1 ]]
+	if [[  ${#cur} < 2 ]]
 	 then
-#TODO replace my directory with a clice config home folder
+		cd "/home/ben/Code/"
+		COMPREPLY=( $( compgen -d -X '!??') )		# list all two character directories
+	else
 		SOURCEDIR="/home/ben/Code/$(echo ${cur:0:2}|tr [a-z] [A-Z])"
-		if [ -d "$SOURCEDIR" ]				# does project directory exist?
+		if [ -d "$SOURCEDIR" ]						# does project directory exist?
 		 then
 			cd ${SOURCEDIR}/
-			COMPREPLY=( $( compgen -f ${cur} ) )
+			COMPREPLY=( $( compgen -f ${cur} ) )	# list files that match what's been typed
 		fi
 	fi
 
@@ -32,8 +33,7 @@ _ce_clice()
 	_init_completion || return
 
 
-	local opts="--help --version"
-#	COMPREPLY=( $( compgen -W "$opts" -- "$cur" ) )
+	local opts="--help --version"					# list valid command options that match what's been typed
 	COMPREPLY=( $( compgen -W "$opts" "$cur" ) )
 
 	return 0

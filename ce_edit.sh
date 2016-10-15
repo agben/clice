@@ -1,64 +1,91 @@
 #!/bin/bash
 #
-# Universal editing and source code management procedure for clice (CE) - the command line coding ecosystem
+# Universal editing and source code management procedure for clice - the command line coding ecosystem
 #
-# Setup:	alias to a command name in your .bashrc
-#			i.e. edc '. ce_edit.sh'
+# By: Andrew Bennington		Licence: GPL v3+	More at: www.benningtons.net
+#
+# Setup:	alias to a command name in your .bashrc		i.e. edc '. ce_edit.sh'
 #			use '. ' to run in the current shell to benefit from directory and flag changes (i.e. debug status)
-# Usage:	edc ce_clice.c
-#			this will change your directory to CE (project name) and give you options to edit, compile, etc...
 #
-# Parameter 1 is the source code full filename+extension e.g. example.c
-#			This should be easierto enter if ce_complete.sh is used for bash completion .i.e. partially type a name and press tab to complete it
+#	clice coding directory structure
+#	--------------------------------
+#                   Code                 [Coding root directory]
+#                    |
+#           +--------+------+-------+
+#           |        |      |       |
+#           |      Backup   |       |    [Backup directory for previous versions of edited files]
+#           |              Obj      |    [Obj directory to hold compiled objects and object libraries]
+#          CE                      FA    [Project directories, each using 2 capital letters]
+#           |
+#   +-------+-------+
+#   |               |
+# ce_clice.c      ce_edit.sh             [Project source files, each starting with the project prefix in lowercase]
+#
+#
+# Usage:	edc			change your working directory to your coding root directory
+#		edc ce			change your working directory to the CE project
+#		edc ce_edit.sh		change your working directory and give you options to edit, compile, etc... the given filename
+#					It will be easier to provide the full filename if ce_complete.sh is used for bash completion
+#						.i.e. partially type a name and press tab to complete it
 
-#TODO CE_DBUG compiler flags will need to be switched on/off in makefile or have a final make question that can force it?
-
-CE_FNAM=$1
-CE_PROGN="${CE_FNAM%.*}"
 #TODO config file needed for pathnames + ~ didn't work? (directory not found)
-CE_ONAM="/home/ben/Code/Obj/${CE_PROGN}.o"
-CE_LANG="$(echo ${CE_FNAM#*.}|tr [a-z] [A-Z])"
-CE_PROJECT="$(echo ${CE_FNAM:0:2}|tr [a-z] [A-Z])"
-CE_DNAME=$PWD
+
+
+cd /home/ben/Code/				# relocate to the coding root directory
+if [ $# -eq 0 ]
+ then							# and stay there if nothing else entered
+	return
+fi
+
+CE_FNAM=$1						# filename entered
+CE_PROJECT="$(echo ${CE_FNAM:0:2}|tr [a-z] [A-Z])"	# project prefix
+
+if [ ! -d "${CE_PROJECT}" ]
+ then
+    echo "--Project ${CE_PROJECT} not found--"
+    return
+fi
+
+cd ${CE_PROJECT}/				# relocate to the project directory
+if [ ${#CE_FNAM} -eq 2 ]
+ then							# and stay there if nothing else entered
+	return
+fi
+
+if [ ! -f "$CE_FNAM" ]
+ then
+    echo "--Filename ${CE_FNAM} not found--"
+    return
+fi
+
+CE_LANG="$(echo ${CE_FNAM#*.}|tr [a-z] [A-Z])"		# determine source language from file extension
 
 # Check file extension against supported languages
 case "$CE_LANG" in
 # F)				# FORTRAN. The .f extension assumes fixed format whereas .f95 is free format
 # ;;
- [CH])			# C. The .c for program code and the .h for include library files
+ [CH])			# C. The .c for program code and the .h for included library files
  ;;
  TXT)			# text files. Usually documentation notes
  ;;
  SH)			# Shell scripts.
  ;;
- *) echo "!!!!!unknown language extention = [${CE_LANG}]!!!!!"
-    return
+ *) echo "--unknown language extention [${CE_LANG}]--"
+	return
  ;;
 esac
 
-if [ ! -d "/home/ben/Code/${CE_PROJECT}" ]
- then
-    echo "!!Cannot find project!!"
-    return
-fi
-
-cd /home/ben/Code/${CE_PROJECT}/
-
-if [ ! -f "$CE_FNAM" ]
- then
-    echo "!!Cannot find source file?!!"
-    cd "$CE_DNAME"
-    return
-fi
+CE_PROGN="${CE_FNAM%.*}"		# program name minus its extension
 
 read -p "EDIT (Y/N/T) " CE_EDD
 case $CE_EDD in
   [Yy])
+#TODO should use the default editor
 	nano $CE_FNAM						# See /usr/share/nano for syntax highlighting rules
 
 	if [ -f "$CE_FNAM"~ ]				# If created a new version, move the previous to the Backup folder
 	 then
-		if [ $CE_LANG != "TXT" ]
+		if [ $CE_LANG != "TXT" ]		# clice doesn't track txt files
 		 then
 			ce_scan $CE_PROGN --language $CE_LANG		# Update clice to show new version created
 		fi
@@ -77,23 +104,25 @@ case "$CE_LANG" in
 	read -p "COMPILE (Y/N/d/D) " CE_CO
 	if [[ $CE_CO == "d" ]]
 	 then
-		CE_DBUG="DEBUG=1"
+		GXT_DEBUG="DEBUG=1"
 		CE_CO="Y"
 	else
 		if [[ $CE_CO == "D" ]]
 		 then
-			CE_DBUG="DEBUG=2"			# trigger debug messages and sleep for $DEBUG-1 seconds
+			GXT_DEBUG="DEBUG=2"			# trigger debug messages and sleep for $DEBUG-1 seconds
 			CE_CO="Y"
 		else
-			CE_DBUG="DEBUG=0"
+			GXT_DEBUG="DEBUG=0"
 		fi
 	fi
-	export CE_DBUG						# export for use in subsequent makefiles
+	export GXT_DEBUG					# export for use in subsequent makefiles
  ;;
  *)
 	CE_CO="N"
  ;;
 esac
+
+CE_ONAM="/home/ben/Code/Obj/${CE_PROGN}.o"		# object files full name
 
 case $CE_CO in
  [Yy])
@@ -128,7 +157,7 @@ case $CE_CO in
 							# -o = output file
 							# -l = libraries to compile against
 		gcc \
-			-D$CE_DBUG \
+			-D$GXT_DEBUG \
 			-c	\
 			-Wall	\
 			$CE_FNAM	\
