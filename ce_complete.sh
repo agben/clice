@@ -9,7 +9,7 @@ _ce_edit()
 
 #TODO replace hard-coding my directory with a clice config home folder
 
-	if [[  ${#cur} < 2 ]]
+	if [[  ${#cur} -lt 2 ]]
 	 then
 		cd "/home/ben/Code/"
 		COMPREPLY=( $( compgen -d -X '!??') )		# list all two character directories
