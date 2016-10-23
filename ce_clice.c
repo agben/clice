@@ -73,11 +73,12 @@ int main(int argc, char **argv)
 
 //#TODO	should use malloc for these?
     char iList[CE_LIST_M0];					// list of selected clice db items
-    char cList[CE_LIST_M0][CE_NAME_S0+10];	// list of their names
+    char sList[CE_LIST_M0][CE_NAME_S0+10];	// list of their names
     char *cpList[CE_LIST_M0];
 
-    char cDisp[CE_DISP_M0][CE_DESC_S0+10];	// bespoke menu/list for display
+    char sDisp[CE_DISP_M0][CE_DESC_S0+10];	// bespoke menu/list for display
     char *cpDisp[CE_DISP_M0];
+
 
 
     while ((i=getopt_long(	argc,					//number of arguments
@@ -102,7 +103,9 @@ int main(int argc, char **argv)
 		  }
 	  }
 
-	nc_start();								// initilise and startup ncurses screen display
+	ut_check(cef_main(FA_INIT+FA_OPEN, 0) == 0,	// initialise libgxtfa and open clice database
+			"Open ce_main.db");
+	nc_start();								// initialise libgxtnc and startup ncurses screen display
 
 	while ((iOpt=nc_menu(cpTitle,cpMenu)) != NC_QUIT)		// Display and manage menu until requested to quit
 	  {
@@ -130,19 +133,19 @@ int main(int argc, char **argv)
 //#TODO Shouldn't tie menu options to the item types held in slice
 				CE.iType=iOpt-1;					// set type of ce record required
 				i=nc_input(	cpTitle+(CE_PROG_TITLE_P0+((iOpt-2)*2)),
-							CE.cName,
+							CE.sName,
 							CE_NAME_S0-1);			// set name to look for in ce
 
-				iCEField[CE_MAIN_TABLE_P0]=CEF_ID_B0+CEF_NAME_B0;	// What to read from the ce database
-				iCEField[CE_LINK_TABLE_P0]=0;
+				CE.bmField=CEF_ID_B0+CEF_NAME_B0;	// What to read from the ce database
+				CEL.bmField=0;
 				ut_check(cef_main(FA_READ+FA_KEY5, 0) == FA_OK_IV0,	// prepare a select of all matching entries
 								"Read key5");						// jump to error: if SQL prepare fails.
 				int iHits=0;
 				while (cef_main(FA_STEP, 0) == FA_OK_IV0)
 				  {
-					cpList[iHits]=cList[iHits];				// establish an array of pointers for nc_menu
+					cpList[iHits]=sList[iHits];				// establish an array of pointers for nc_menu
 					iList[iHits]=CE.iNo;
-					sprintf(cList[iHits++],"%s",CE.cName);	// pointers to the name of each matching record
+					sprintf(sList[iHits++],"%s",CE.sName);	// pointers to the name of each matching record
 
 					if (iHits == CE_LIST_M0)
 					  {
@@ -169,24 +172,24 @@ int main(int argc, char **argv)
 
 					while (iOpt != NC_QUIT)
 					  {
-						CE.iNo=iList[iPos-1];								// Read more about the selected item
-						iCEField[CE_MAIN_TABLE_P0]=CEF_DESC_B0+CEF_LANG_B0;	// What to read from the ce database
-						iCEField[CE_LINK_TABLE_P0]=0;
-						ut_check(	cef_main(FA_READ, 0) == FA_OK_IV0,		// prepare a select for selected item
+						CE.iNo=iList[iPos-1];				// Read more about the selected item
+						CE.bmField=CEF_DESC_B0+CEF_LANG_B0;	// What to read from the ce database
+						CEL.bmField=0;
+						ut_check(	cef_main(FA_READ+FA_STEP, 0) == FA_OK_IV0,		// prepare a select for selected item
 									"Read key0");							// jump to error: if SQL prepare fails.
-						ut_check(cef_main(	FA_STEP, 0) == FA_OK_IV0,		// step to 1st (and only) selected item
-											"Step");						// jump to error: if SQL fails.
-						cpDisp[0]=cDisp[0];									// Display a single item
-						sprintf(cDisp[0]," ");
-						cpDisp[1]=cDisp[1];
-						sprintf(cDisp[1],"Name=%s Language=%c",
-								cList[iPos-1],
+//						ut_check(cef_main(	FA_STEP, 0) == FA_OK_IV0,		// step to 1st (and only) selected item
+//											"Step");						// jump to error: if SQL fails.
+						cpDisp[0]=sDisp[0];									// Display a single item
+						sprintf(sDisp[0]," ");
+						cpDisp[1]=sDisp[1];
+						sprintf(sDisp[1],"Name=%s Language=%c",
+								sList[iPos-1],
 								CE.cLang);
-						cpDisp[2]=cDisp[2];
-						sprintf(cDisp[2],"%s",CE.cDesc);
-						cpDisp[3]=cDisp[3];
-						sprintf(cDisp[3]," ");
-						cpDisp[4]=cDisp[4];
+						cpDisp[2]=sDisp[2];
+						sprintf(sDisp[2],"%s",CE.sDesc);
+						cpDisp[3]=sDisp[3];
+						sprintf(sDisp[3]," ");
+						cpDisp[4]=sDisp[4];
 						cpDisp[4]=(char *) NULL;		// mark end of display
 
 						iOpt=nc_menu(	cpDisp,

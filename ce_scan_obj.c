@@ -25,7 +25,7 @@
 int main(int argc, char **argv)
   {
 	FILE *fp;
-	char cBuff[BUFF_S0];			// input buffer for init file reads
+	char sBuff[BUFF_S0];			// input buffer for init file reads
 	int i;
 	int iSize = 0;				// size of object file
 	char *cp;
@@ -67,30 +67,33 @@ int main(int argc, char **argv)
 	ut_check(optind == argc-1,					// still an argument remaining? the object to scan
 			"Usage = ce_scan_obj <object.ce>");
 
+	ut_check(cef_main(FA_INIT+FA_OPEN, 0) == 0,
+			"failed to open clice db");			// initialise libgxtfa and open clice db
+
 	ut_date_now();								// get current date & time
 
-	strncpy(spCEL->cName, argv[1], CE_NAME_S0);	// Calling program name
-	sprintf(&cBuff[0], "%s.ce", spCEL->cName);	// object filename to be scanned
+	strncpy(spCEL->sName, argv[1], CE_NAME_S0);	// Calling program name
+	sprintf(&sBuff[0], "%s.ce", spCEL->sName);	// object filename to be scanned
 
-	fp = fopen(&cBuff[0], "r");					//Open file as read-only
+	fp = fopen(&sBuff[0], "r");					//Open file as read-only
 	ut_check(fp != NULL, "open obj");			// jumps to error: if not ok
 
-	while (fgets(cBuff, BUFF_S0, fp) != NULL)
+	while (fgets(sBuff, BUFF_S0, fp) != NULL)
 	  {
-		ut_debug("in: %s", cBuff);
+		ut_debug("in: %s", sBuff);
 
-		if (cBuff[0] == '_') continue;			// ignore system calls starting with an underscore
+		if (sBuff[0] == '_') continue;			// ignore system calls starting with an underscore
 
 		i=0;
-		while (cBuff[i] > ' ')					// unpack referenced module name
+		while (sBuff[i] > ' ')					// unpack referenced module name
 		  {
-			spCEL->cCalls[i]=cBuff[i];
+			spCEL->sCalls[i]=sBuff[i];
 			i++;
 		  }
-		spCEL->cCalls[i]=0;
-		ut_debug("name=%s", spCEL->cCalls);
+		spCEL->sCalls[i]=0;
+		ut_debug("name=%s", spCEL->sCalls);
 
-		spCEL->cRel=cBuff[++i];					// unpack reference type
+		spCEL->cRel=sBuff[++i];					// unpack reference type
 		ut_debug("rel=%c", spCEL->cRel);
 
 		if (spCEL->cRel == 'C' || spCEL->cRel == 'D' ||		// variables and structs - #TODO ignored for now.
@@ -98,25 +101,25 @@ int main(int argc, char **argv)
 			continue;
 		else if (spCEL->cRel == 'T')			// this module (or one of several in this source file)
 		  {
-			cBuff[i+18]='\0';					// Null terminate for atoi
-			cp=&cBuff[i+11];
+			sBuff[i+18]='\0';					// Null terminate for atoi
+			cp=&sBuff[i+11];
 			iSize+=atoi(cp);					// module size
 		  }
 		else if (spCEL->cRel == 'U')			// used link to another CE module or system routine
 		  {
-			iCEField[CE_MAIN_TABLE_P0]=0;		// Select which fields to read
-			iCEField[CE_LINK_TABLE_P0]=CEF_LINK_ID_B0;		// Just get the ID to confirm if row already exists
+			CE.bmField=0;						// Select which fields to read
+			CEL.bmField=CEF_LINK_ID_B0;			// Just get the ID to confirm if row already exists
 			if (cef_main(FA_READ+FA_STEP,
 	    		"cl.name = % AND cl.calls = %") == FA_OK_IV0)	// Link between these modules already exists?
 			  {
 				i=FA_UPDATE+FA_KEY2;			// Yes so update with current time marker
-				iCEField[CE_LINK_TABLE_P0]=CEF_LINK_TIME_B0;	// Only need to update the time stamp
+				CEL.bmField=CEF_LINK_TIME_B0;	// Only need to update the time stamp
 			  }
 			else
 			  {
-				printf("CE: now using %s\n", spCEL->cCalls);	// No? a new link has been established
+				printf("CE: now using %s\n", spCEL->sCalls);	// No? a new link has been established
 				i=FA_WRITE;										// Insert into db
-				iCEField[CE_LINK_TABLE_P0]=SQL_ALL_COLS_B0;
+				CEL.bmField=FA_ALL_COLS_B0;
 			  }
 			spCEL->iTime=gxt_iTime[0];				// Mark with current time
 			ut_check(cef_main(i, 0) == FA_OK_IV0, "update CEL");
@@ -126,31 +129,31 @@ int main(int argc, char **argv)
 	  }
 
 
-	spCEL->iTime=gxt_iTime[0];					// Check for unused (not time stamped) links
-	iCEField[CE_MAIN_TABLE_P0]=0;				// Select which fields to read
-	iCEField[CE_LINK_TABLE_P0]=CEF_LINK_CALLS_B0;
+	spCEL->iTime=gxt_iTime[0];				// Check for unused (not time stamped) links
+	CE.bmField=0;							// Select which fields to read
+	CEL.bmField=CEF_LINK_CALLS_B0;
 	ut_check(cef_main(FA_READ, "cl.name = % AND cl.time <> %") == FA_OK_IV0,
 			"read CEL");
 	i=0;
 	while (cef_main(FA_STEP,0) == FA_OK_IV0)
 	  {
-		printf("CE: no longer using %s\n", spCEL->cCalls);
+		printf("CE: no longer using %s\n", spCEL->sCalls);
 		i=1;
 	  }
 
 	if (i == 1)
 	  {
-		spCEL->iTime=gxt_iTime[0];				// Purge all remaining unused (not time stamped) links
-		iCEField[CE_MAIN_TABLE_P0]=0;			// Select which table to delete from
-		iCEField[CE_LINK_TABLE_P0]=SQL_ALL_COLS_B0;
+		spCEL->iTime=gxt_iTime[0];			// Purge all remaining unused (not time stamped) links
+		CE.bmField=0;						// Select which table to delete from
+		CEL.bmField=FA_ALL_COLS_B0;
 		ut_check(cef_main(	FA_DELETE,
 							"cl.name = % AND cl.time <> %") == FA_OK_IV0,
 			"delete CEL");						// jumps to error: if not ok
 	  }
 
-	strncpy(spCE->cName, spCEL->cName, CE_NAME_S0);		// Now read main module and update details
-	iCEField[CE_MAIN_TABLE_P0]=CEF_ID_B0+CEF_SIZE_B0;	// Select which fields to read
-	iCEField[CE_LINK_TABLE_P0]=0;
+	strncpy(spCE->sName, spCEL->sName, CE_NAME_S0);		// Now read main module and update details
+	CE.bmField=CEF_ID_B0+CEF_SIZE_B0;			// Select which fields to read
+	CEL.bmField=0;
 	ut_check(cef_main(FA_READ+FA_STEP,
 					"ce.name = %") == FA_OK_IV0,	// read using name as key
 		"read CE");									// jumps to error: if not ok
@@ -169,8 +172,8 @@ int main(int argc, char **argv)
 	spCE->iCDate=gxt_iDate[0];					// Record date & time of last compilation
 	spCE->iCTime=gxt_iTime[0];
 
-	iCEField[CE_MAIN_TABLE_P0]=CEF_LAST_COMP_B0+CEF_SIZE_B0;	// Only need to update size & last compiled date & time
-	iCEField[CE_LINK_TABLE_P0]=0;
+	CE.bmField=CEF_LAST_COMP_B0+CEF_SIZE_B0;	// Only need to update size & last compiled date & time
+	CEL.bmField=0;
 	ut_check(cef_main(FA_UPDATE, "ce.id = %") == FA_OK_IV0,		// update using id as key
 		"update CE");											// jumps to error: if not ok
 

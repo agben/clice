@@ -17,45 +17,54 @@
 #include <ce_main.h>		// definition of coding ecosystem (CE) data structures
 #include <fa_sql_def.h>		// Generic SQL table and column definitions
 
+//------------------------------Identify the tables in this database - ce_main.db
+#define	CE_TABLE_M0			2	// Number of tables in cd_main.db
+#define	CE_MAIN_TABLE_P0	0	// The main CE module data table
+#define	CE_LINK_TABLE_P0	1	// Table used to show links between CE modules
 
-struct sql_column CEF[CE_TABLE_M0][CE_FIELD_M0] =	//Declare the columns used in each table
+#define	CE_KEY_M0			5	// Number of keys defined for the SQL generator
+
+#define	CE_FIELD_M0	12		// total number of int + blob fields
+
+
+struct fa_sql_column CEF[CE_TABLE_M0][CE_FIELD_M0] =	//Declare the columns used in each table
   {
 	{//name		column flags	where to extract SQL data to	max size of column data
-	{"id",	(	SQL_COL_INT_B0+
-				SQL_COL_PRIME_B0+
-				SQL_COL_AUTO_B0),	(char*)&CE.iNo,				SQL_FIELD_INT_S0},
-	{"name",	SQL_COL_BLOB_B0,	(char*)&CE.cName,			CE_NAME_S0},
-	{"type",	SQL_COL_INT_B0,		(char*)&CE.iType,			SQL_FIELD_INT_S0},
-	{"status",	SQL_COL_INT_B0,		(char*)&CE.iStatus,			SQL_FIELD_INT_S0},
-	{"dir",		SQL_COL_BLOB_B0,	(char*)&CE.cDir,			CE_DIR_S0},
-	{"cdate",	SQL_COL_INT_B0,		(char*)&CE.iCDate,			SQL_FIELD_INT_S0},
-	{"ctime",	SQL_COL_INT_B0,		(char*)&CE.iCTime,			SQL_FIELD_INT_S0},
-	{"mdate",	SQL_COL_INT_B0,		(char*)&CE.iMDate,			SQL_FIELD_INT_S0},
-	{"mtime",	SQL_COL_INT_B0,		(char*)&CE.iMTime,			SQL_FIELD_INT_S0},
-	{"desc",	SQL_COL_BLOB_B0,	(char*)&CE.cDesc,			CE_DESC_S0},
-	{"lang",	SQL_COL_CHAR_B0,	(char*)&CE.cLang,			SQL_FIELD_CHAR_S0},
-	{"size",	SQL_COL_INT_B0,		(char*)&CE.iSize,			SQL_FIELD_INT_S0}
+	{"id",	(	FA_COL_INT_B0+
+				FA_COL_PRIME_B0+
+				FA_COL_AUTO_B0),	(char*)&CE.iNo,			FA_FIELD_INT_S0},
+	{"name",	FA_COL_BLOB_B0,		(char*)&CE.sName,		CE_NAME_S0},
+	{"type",	FA_COL_INT_B0,		(char*)&CE.iType,		FA_FIELD_INT_S0},
+	{"status",	FA_COL_INT_B0,		(char*)&CE.iStatus,		FA_FIELD_INT_S0},
+	{"dir",		FA_COL_BLOB_B0,		(char*)&CE.sDir,		CE_DIR_S0},
+	{"cdate",	FA_COL_INT_B0,		(char*)&CE.iCDate,		FA_FIELD_INT_S0},
+	{"ctime",	FA_COL_INT_B0,		(char*)&CE.iCTime,		FA_FIELD_INT_S0},
+	{"mdate",	FA_COL_INT_B0,		(char*)&CE.iMDate,		FA_FIELD_INT_S0},
+	{"mtime",	FA_COL_INT_B0,		(char*)&CE.iMTime,		FA_FIELD_INT_S0},
+	{"desc",	FA_COL_BLOB_B0,		(char*)&CE.sDesc,		CE_DESC_S0},
+	{"lang",	FA_COL_CHAR_B0,		(char*)&CE.cLang,		FA_FIELD_CHAR_S0},
+	{"size",	FA_COL_INT_B0,		(char*)&CE.iSize,		FA_FIELD_INT_S0}
 	},
 	{//name		column flags	where to extract SQL data to	max size of column data
-	{"id",	(	SQL_COL_INT_B0+
-				SQL_COL_PRIME_B0+
-				SQL_COL_AUTO_B0),	(char*)&CEL.iNo,			SQL_FIELD_INT_S0},
-	{"name",	SQL_COL_BLOB_B0,	(char*)&CEL.cName,			CE_NAME_S0},
-	{"calls",	SQL_COL_BLOB_B0,	(char*)&CEL.cCalls,			CE_NAME_S0},
-	{"rel",		SQL_COL_CHAR_B0,	(char*)&CEL.cRel,			SQL_FIELD_CHAR_S0},
-	{"time",	SQL_COL_INT_B0,		(char*)&CEL.iTime,			SQL_FIELD_INT_S0},
+	{"id",	(	FA_COL_INT_B0+
+				FA_COL_PRIME_B0+
+				FA_COL_AUTO_B0),	(char*)&CEL.iNo,		FA_FIELD_INT_S0},
+	{"name",	FA_COL_BLOB_B0,		(char*)&CEL.sName,		CE_NAME_S0},
+	{"calls",	FA_COL_BLOB_B0,		(char*)&CEL.sCalls,		CE_NAME_S0},
+	{"rel",		FA_COL_CHAR_B0,		(char*)&CEL.cRel,		FA_FIELD_CHAR_S0},
+	{"time",	FA_COL_INT_B0,		(char*)&CEL.iTime,		FA_FIELD_INT_S0},
 	}
   };
 
-struct sql_table CET[CE_TABLE_M0] =		//Declare the tables used in ce_main.db
-  {// name		alias	Column count	pointer to column details
-	{"ce_main",	"ce",	CE_FIELD_M0,	&CEF[0][0],},
-	{"ce_link",	"cl",	5,				&CEF[1][0]}
+struct fa_sql_table CET[CE_TABLE_M0] =		//Declare the tables used in ce_main.db
+  {// name		alias	Column count	Fields	pointer to column details
+	{"ce_main",	"ce",	CE_FIELD_M0,	0,		&CEF[0][0],},
+	{"ce_link",	"cl",	5,				0,		&CEF[1][0]}
   };
 
-struct sql_db CEB =				//Declare database details for clice_main.db
-  {	// db name		  Tables	max columns		max keys	table defs
-	"clice_main.db",	2,		CE_FIELD_M0,	CE_KEY_M0,	&CET[0],
+struct fa_sql_db CEB =				//Declare database details for clice_main.db
+  {	// db path		db name			  Tables	max columns		max keys	LUN	table defs
+	"/var/local/",	"clice_main.db",	2,		CE_FIELD_M0,	CE_KEY_M0,	0,	&CET[0],
 //	key scripts
 		{"ce.id = %",				// 0
 		 "ce.name = %",				// 1

@@ -10,7 +10,7 @@
 //
 // #TODO - could also be used to check for edit permissions or other warnings?
 //
-//	GNU GPLv3+ licence	clice (CE) - Coding Ecosystem by Andrew Bennington 2015 <www.benningtons.net>
+//	GNU GPLv3+ licence	clice - The command-line coding ecosystem by Andrew Bennington 2015 <www.benningtons.net>
 //
 //--------------------------------------------------------------
 
@@ -71,48 +71,51 @@ int main(int argc, char **argv)
 	ut_check(optind == argc-1,					// still an argument remaining? the program to scan
 			"Usage = ce_scan <program> --language c");
 
-	strcpy(spCE->cName, argv[optind]);						// Program name
-	ut_check(getcwd(CE.cDir, sizeof(CE.cDir)), "getcwd");	// get current working directory
+	ut_check(cef_main(FA_INIT+FA_OPEN, 0) == 0,	// Initialise libgxtfa and open clice db
+			"Failed to open clice db");
 
-	ut_debug("Program to scan= %s",spCE->cName);
-	ut_debug("Current directory= %s",spCE->cDir);
+	strcpy(spCE->sName, argv[optind]);						// Program name
+	ut_check(getcwd(CE.sDir, sizeof(CE.sDir)), "getcwd");	// get current working directory
+
+	ut_debug("Program to scan= %s",spCE->sName);
+	ut_debug("Current directory= %s",spCE->sDir);
 	ut_debug("language = %c",spCE->cLang);
 
 	ut_date_now();								// get current date and time
 
-	iCEField[CE_MAIN_TABLE_P0]=CEF_ID_B0;		// only need to read ID to confirm if this program exists in CE
-	iCEField[CE_LINK_TABLE_P0]=0;
+	CE.bmField=CEF_ID_B0;						// only need to read ID to confirm if this program exists in CE
+	CEL.bmField=0;
 	if (cef_main(FA_READ+FA_KEY1+FA_STEP, 0) == FA_NODATA_IV0)	// module not found so create a new CE module
 	 {
 		if (spCE->cLang == 'H')
 		 {
-			printf("CE: New library module added - %s\n", spCE->cName);
+			printf("CE: New library module added - %s\n", spCE->sName);
 			spCE->iType=CE_LIB_T0;
 		 }
 		else
 		 {
-			printf("CE: New program module added - %s\n", spCE->cName);
+			printf("CE: New program module added - %s\n", spCE->sName);
 			spCE->iType=CE_PRG_T0;
 		 }
 
 		spCE->iStatus=0;
 		spCE->iMDate=spCE->iCDate=gxt_iDate[0];
 		spCE->iMTime=spCE->iCTime=gxt_iTime[0];
-		sprintf(spCE->cDesc, "Need to scan source for description");
+		sprintf(spCE->sDesc, "Need to scan source for description");
 		spCE->iSize=0;
 
-		iCEField[CE_MAIN_TABLE_P0]=SQL_ALL_COLS_B0;	// Going to insert all new fields
-		ios=cef_main(FA_WRITE, 0);					// Write a new CE module to db
+		CE.bmField=FA_ALL_COLS_B0;				// Going to insert all new fields
+		ios=cef_main(FA_WRITE, 0);				// Write a new CE module to db
 		ut_check(ios == FA_OK_IV0, "write");
 	 }
-	else											// exits so update last modified date/time
+	else										// exits so update last modified date/time
 	 {
 		spCE->iMDate=gxt_iDate[0];
 		spCE->iMTime=gxt_iTime[0];
 
-		iCEField[CE_MAIN_TABLE_P0]=CEF_LAST_MOD_B0;	// only need to update last modified date & time
-		iCEField[CE_LINK_TABLE_P0]=0;
-		ios=cef_main(FA_UPDATE+FA_KEY0, 0);			// update CE module in db
+		CE.bmField=CEF_LAST_MOD_B0;				// only need to update last modified date & time
+		CEL.bmField=0;
+		ios=cef_main(FA_UPDATE+FA_KEY0, 0);		// update CE module in db
 		ut_check(ios == FA_OK_IV0, "rewrite");
 	 }
 
