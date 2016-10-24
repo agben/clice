@@ -134,7 +134,7 @@ int main(int argc, char **argv)
 				CE.iType=iOpt-1;					// set type of ce record required
 				i=nc_input(	cpTitle+(CE_PROG_TITLE_P0+((iOpt-2)*2)),
 							CE.sName,
-							CE_NAME_S0-1);			// set name to look for in ce
+							CE_NAME_S0-1);			// set name to look for in clice db
 
 				CE.bmField=CEF_ID_B0+CEF_NAME_B0;	// What to read from the ce database
 				CEL.bmField=0;
@@ -166,9 +166,9 @@ int main(int argc, char **argv)
 					cpList[iHits]=(char *) NULL;		// mark end of search results list
 
 					iPos=(iHits == 1) ? 1 :
-					nc_menu(cpTitle+CE_SELECT_TITLE_P0,
-							cpList);					// display search results until selection or quit requested
-					if (iPos == NC_QUIT) iOpt=NC_QUIT;	// Pass on a quit request from the search results list
+						nc_menu(cpTitle+CE_SELECT_TITLE_P0,
+								cpList);					// display search results until selection or quit requested
+					if (iPos == NC_QUIT) iOpt=NC_QUIT;		// Pass on a quit request from the search results list
 
 					while (iOpt != NC_QUIT)
 					  {
@@ -177,8 +177,6 @@ int main(int argc, char **argv)
 						CEL.bmField=0;
 						ut_check(	cef_main(FA_READ+FA_STEP, 0) == FA_OK_IV0,		// prepare a select for selected item
 									"Read key0");							// jump to error: if SQL prepare fails.
-//						ut_check(cef_main(	FA_STEP, 0) == FA_OK_IV0,		// step to 1st (and only) selected item
-//											"Step");						// jump to error: if SQL fails.
 						cpDisp[0]=sDisp[0];									// Display a single item
 						sprintf(sDisp[0]," ");
 						cpDisp[1]=sDisp[1];
@@ -198,29 +196,19 @@ int main(int argc, char **argv)
 						switch (iOpt)				// then check for menu selection actions
 						  {
 							case 1:					// Next item
-								if (iPos+1 < iHits)
-								  {
-									iPos++;
-//									nc_message("Next item");
-//									sleep(1);
-								  }
+								if (iPos < iHits) iPos++;
 								break;
 
 							case 2:					// Previous item
-								if (iPos-1 > 0)
-								  {
-									iPos--;
-//								    nc_message("Previous item");
-//								    sleep(1);
-								  }
+								if (iPos-1 > 0) iPos--;
 								break;
 
-							case NC_QUIT:				// Quit item display so
+							case NC_QUIT:			// Quit item display so
 								if (iHits > 1)			// if only 1 hit then quit to main menu else
 								  {
 									iPos=nc_menu(	cpTitle+CE_SELECT_TITLE_P0,
 													cpList);		// display search results until selection or quit request
-									if (iPos != NC_QUIT) iOpt=1;		// Pass on a quit request from the search results list
+									if (iPos != NC_QUIT) iOpt=1;	// Pass on a quit request from the search results list
 //#TODO if returning to the search results list then it would be nice to retain our current position rather than return to the top
 								  }
 								break;
