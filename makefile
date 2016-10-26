@@ -15,6 +15,11 @@ libgxtfa = $(objdir)/libgxtfa.a
 libgxtnc = $(objdir)/libgxtnc.a
 libgxtut = $(objdir)/libgxtut.a
 
+#notes:
+#	$@ = target
+#	$^ = list of all prerequisites
+#	$< = just the first prerequisite
+
 # Executables
 all: ce_clice ce_scan ce_scan_obj
 ce_clice: ce_clice.c $(objdir)/cef_main.o $(objdir)/ce_utils.o $(libgxtfa) $(libgxtnc)
@@ -25,10 +30,11 @@ ce_scan_obj: ce_scan_obj.c $(objdir)/cef_main.o $(objdir)/ce_utils.o $(libgxtfa)
 	$(GCC) $(CFLAGS) $^ -o $@ -lsqlite3
 
 # Subroutines and functions
-$(objdir)/cef_main.o: cef_main.c
-	$(GCC) $(CFLAGS) -c $^ -o $@
+$(objdir)/cef_main.o: cef_main.c \
+						$(includedir)/ce_main.h $(includedir)/ce_main_def.h
+	$(GCC) $(CFLAGS) -c $< -o $@
 $(objdir)/ce_utils.o: ce_utils.c
-	$(GCC) $(CFLAGS) -c $^ -o $@
+	$(GCC) $(CFLAGS) -c $< -o $@
 
 # Tidy-up
 clean:
