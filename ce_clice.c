@@ -109,9 +109,6 @@ int main(int argc, char **argv)
 			"Open ce_main.db");
 	nc_start();									// initialise libgxtnc and startup ncurses screen display
 
-	for (i=0; i < CE_LIST_M0; i++)
-		cpList[i]=sList[i];					// establish an array of pointers for nc_menu
-
 	while ((iOpt=nc_menu(cpTitle,cpMenu)) != NC_QUIT)	// Display and manage menu until requested to quit
 	  {
 		switch (iOpt)						// then check for menu selection actions
@@ -148,6 +145,7 @@ int main(int argc, char **argv)
 				iHits=0;
 				while (cef_main(FA_STEP, 0) == FA_OK_IV0)
 				  {
+					cpList[iHits]=sList[iHits];				// establish an array of pointers for nc_menu - #TODO must be a better way?
 					iList[iHits]=CE.iNo;
 					sprintf(sList[iHits++],"%s",CE.sName);	// pointers to the name of each matching record
 
@@ -181,16 +179,27 @@ int main(int argc, char **argv)
 						CEL.bmField=0;
 						ut_check(	cef_main(FA_READ+FA_STEP, 0) == FA_OK_IV0,		// prepare a select for selected item
 									"Read key0");							// jump to error: if SQL prepare fails.
-						cpDisp[0]=sDisp[0];									// Display a single item
+
+															// #TODO there must be a neater way rather than set these pointers for each line?
+															//		Probably by having the display list terminated by a null rather than a pointer to null.
+						cpDisp[0]=sDisp[0];					// establish an array of pointers for nc_menu
 						sprintf(sDisp[0]," ");
+
+						if (CE.cLang == 'S')
+							sprintf(sDisp[2],"Shell script");
+						else
+							sprintf(sDisp[2],"%c",CE.cLang);
 						cpDisp[1]=sDisp[1];
-						sprintf(sDisp[1],"Name=%s Language=%c",
+						sprintf(sDisp[1],"Name=%s Language=%s",
 								sList[iPos-1],
-								CE.cLang);
+								sDisp[2]);
+
 						cpDisp[2]=sDisp[2];
 						sprintf(sDisp[2],"%s",CE.sDesc);
+
 						cpDisp[3]=sDisp[3];
 						sprintf(sDisp[3]," ");
+
 						cpDisp[4]=sDisp[4];
 						cpDisp[4]=(char *) NULL;		// mark end of display
 
@@ -222,6 +231,7 @@ int main(int argc, char **argv)
 								i=0;
 								while (cef_main(FA_STEP, 0) == FA_OK_IV0)
 								  {
+									cpList[i]=sList[i];				// establish an array of pointers for nc_menu - #TODO must be a better way?
 									memcpy(	sList[i],
 											CEL.sCalls,
 											CE_NAME_S0);
