@@ -89,4 +89,12 @@ struct CEL_FIELDS
 	char	cRel;			// Type of relationship to cCalls
   } CEL, *spCEL;
 
+//------------------------------Object symbols identified by the nm routine
+#define CEL_REL_UNDAT_V0	'C'	// Uninitialised data
+#define CEL_REL_UNDEF_V0	'U'	// Undefined symbol - usually indicating a local or system routine
+#define CEL_REL_GDATA_V0	'D'	// Initialised data - global
+#define CEL_REL_LDATA_V0	'd'	// Initialised data - local
+#define CEL_REL_GTEXT_V0	'T'	// Text symbol - global
+#define CEL_REL_UNDEF_V0	'U'	// Undefined symbol - usually indicating a local or system routine
+
 #endif

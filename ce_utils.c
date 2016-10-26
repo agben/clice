@@ -5,7 +5,7 @@
 //	ce_help()		- output basic clice help advice
 //	ce_version()	- output version, copyright and licence details for clice
 //
-//	GNU GPLv3+ licence	CE by Andrew Bennington 2016 <www.benningtons.net>
+//	GNU GPLv3+ licence	clice by Andrew Bennington 2016 <www.benningtons.net>
 //
 //--------------------------------------------------------------
 
@@ -34,7 +34,7 @@ void ce_help(void)
 
 void ce_version(void)
   {
-	printf("clice - the Command-LIne Coding Ecosystem) v0.1.2.0\n");
+	printf("clice - the Command-LIne Coding Ecosystem) v0.1.3.0\n");
 	printf("        versioning = major.minor.bugfix.documentation\n\n");
 	printf("Copyright (C) Andrew Bennington 2015 <www.benningtons.net>\n");
 	printf("Licence GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n");

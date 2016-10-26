@@ -11,6 +11,7 @@
 #include <ctype.h>		// common I/O functions like toupper()
 #include <getopt.h>		// for getopt_long - argument parsing
 #include <stdlib.h>		// memory management
+#include <string.h>		// for memcpy
 
 #include <fa_def.h>		// filehandler actions
 #include <nc_main.h>	// NC ncurses utility definitions
@@ -42,19 +43,19 @@ char *cpTitle[] =	{	"clice Menu",
 #define CE_ACTIONS_MENU_P0	8
 char *cpMenu[] =	{	"1) Projects",
 						"2) Programs",
-						"3) System Routines",
-						"4) Libraries",
+						"!3) System Routines",
+						"!4) Libraries",
 			(char *) NULL,
-						"1) Make all",
-						"2) Make install",
+						"!1) Make all",
+						"!2) Make install",
 			(char *) NULL,
 						"1) Next",
 						"2) Previous",
-						"3) Edit",
-						"4) Calls to",
-						"5) Calls from",
-						"6) Delete",
-						"7) Make",
+						"3) Calls to",
+						"!4) Calls from",
+						"!5) Edit",
+						"!6) Delete",
+						"!7) Make",
 			(char *) NULL};
 
 
@@ -68,6 +69,7 @@ int main(int argc, char **argv)
 
 	int option_index = 0;
 	int	i;
+	int iHits;								// number of hits found by each search
 	int	iOpt;								// selected menu option
 	int iPos;								// position within a search list
 
@@ -105,9 +107,12 @@ int main(int argc, char **argv)
 
 	ut_check(cef_main(FA_INIT+FA_OPEN, 0) == 0,	// initialise libgxtfa and open clice database
 			"Open ce_main.db");
-	nc_start();								// initialise libgxtnc and startup ncurses screen display
+	nc_start();									// initialise libgxtnc and startup ncurses screen display
 
-	while ((iOpt=nc_menu(cpTitle,cpMenu)) != NC_QUIT)		// Display and manage menu until requested to quit
+	for (i=0; i < CE_LIST_M0; i++)
+		cpList[i]=sList[i];					// establish an array of pointers for nc_menu
+
+	while ((iOpt=nc_menu(cpTitle,cpMenu)) != NC_QUIT)	// Display and manage menu until requested to quit
 	  {
 		switch (iOpt)						// then check for menu selection actions
 		  {
@@ -131,7 +136,7 @@ int main(int argc, char **argv)
 			case 4:
 				nc_message("Use % for wildcard");
 //#TODO Shouldn't tie menu options to the item types held in slice
-				CE.iType=iOpt-1;					// set type of ce record required
+				CE.iType=iOpt-1;					// set type of record required (program, library, ...)
 				i=nc_input(	cpTitle+(CE_PROG_TITLE_P0+((iOpt-2)*2)),
 							CE.sName,
 							CE_NAME_S0-1);			// set name to look for in clice db
@@ -140,10 +145,9 @@ int main(int argc, char **argv)
 				CEL.bmField=0;
 				ut_check(cef_main(FA_READ+FA_KEY5, 0) == FA_OK_IV0,	// prepare a select of all matching entries
 								"Read key5");						// jump to error: if SQL prepare fails.
-				int iHits=0;
+				iHits=0;
 				while (cef_main(FA_STEP, 0) == FA_OK_IV0)
 				  {
-					cpList[iHits]=sList[iHits];				// establish an array of pointers for nc_menu
 					iList[iHits]=CE.iNo;
 					sprintf(sList[iHits++],"%s",CE.sName);	// pointers to the name of each matching record
 
@@ -201,6 +205,67 @@ int main(int argc, char **argv)
 
 							case 2:					// Previous item
 								if (iPos-1 > 0) iPos--;
+								break;
+
+							case 3:					// Calls to
+								CE.bmField=0;
+								CEL.bmField=CEF_LINK_CALLS_B0;	// read list of called subroutine/functions
+								memcpy(	CEL.sName,
+										sList[iPos-1],
+										CE_NAME_S0);
+								CEL.cRel=CEL_REL_UNDEF_V0;
+								ut_check(
+									cef_main(FA_READ+FA_KEY4,
+												0) == FA_OK_IV0,	// prepare a select of all matching entries
+									"Read key4");					// jump to error: if SQL prepare fails.
+
+								i=0;
+								while (cef_main(FA_STEP, 0) == FA_OK_IV0)
+								  {
+									memcpy(	sList[i],
+											CEL.sCalls,
+											CE_NAME_S0);
+									iList[i++]=0;				// Will determine if each called item exists in clice later
+									if (i == CE_LIST_M0)		//#TODO need to handle large lists better - this will keep pausing
+									  {
+										i--;
+										nc_message("Too many matches - showing first page only");
+										sleep(2);
+										continue;
+									  }
+								  }
+
+								if (i == 0)						// no matches in clice database
+								  {
+									nc_message("No called items");
+									sleep(2);						// iList, sList, iPos and iHits are preserved so just continue.
+								  }
+								else
+								  {
+									iHits=i;						// can nolonger return to the previous menu list
+									cpList[iHits]=(char *) NULL;	// mark end of search results list
+
+									for (i=0; i < iHits; i++)
+									  {
+										memcpy(	CE.sName,
+												sList[i],
+												CE_NAME_S0);
+										CE.bmField=CEF_ID_B0;		// See which called modules exist in clice
+										CEL.bmField=0;
+										ut_check(cef_main(FA_READ+FA_KEY1,
+															0) == FA_OK_IV0,	// prepare a select for selected item
+												"Read key1");		// jump to error: if SQL prepare fails.
+
+										if (cef_main(FA_STEP,0) == FA_OK_IV0)
+											iList[i]=CE.iNo;
+										else
+											sprintf(sList[i],"!%s",CE.sName);	// Mark module as unknown in clice with a leading hash
+									  }
+
+									iPos=nc_menu(cpTitle+CE_SELECT_TITLE_P0,
+												cpList);					// display search results until selection or quit requested
+									if (iPos == NC_QUIT) iOpt=NC_QUIT;		// Pass on a quit request and return to the master menu
+								  }
 								break;
 
 							case NC_QUIT:			// Quit item display so

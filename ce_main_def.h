@@ -70,8 +70,9 @@ struct fa_sql_db CEB =				//Declare database details for clice_main.db
 		 "ce.name = %",				// 1
 		 "cl.id = %",				// 2
 		 "cl.name = % AND cl.time <> %",	// 3
-		 "cl.name = % AND cl.calls = %",	// 4
-		 "ce.name LIKE % AND ce.type = % ORDER BY ce.name ASC"}	// 5
+		 "cl.name = % AND cl.rel = % ORDER BY cl.calls ASC",	// 4	select all links of type 'cl.rel' to module 'cl.name'
+		 "ce.name LIKE % AND ce.type = % ORDER BY ce.name ASC"}	// 5	select all matching modules of specified type (program. library, etc...)
   };
 
+//		 "cl.name = % AND cl.calls = %",	// 4
 #endif

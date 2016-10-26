@@ -96,16 +96,17 @@ int main(int argc, char **argv)
 		spCEL->cRel=sBuff[++i];					// unpack reference type
 		ut_debug("rel=%c", spCEL->cRel);
 
-		if (spCEL->cRel == 'C' || spCEL->cRel == 'D' ||		// variables and structs - #TODO ignored for now.
-			spCEL->cRel == 'c' || spCEL->cRel == 'd')
+		if (spCEL->cRel == CEL_REL_UNDAT_V0 ||		// variables and structs - #TODO ignored for now.
+			spCEL->cRel == CEL_REL_GDATA_V0 ||
+			spCEL->cRel == CEL_REL_LDATA_V0)
 			continue;
-		else if (spCEL->cRel == 'T')			// this module (or one of several in this source file)
+		else if (spCEL->cRel == CEL_REL_GTEXT_V0)	// symbol for this module (or one of several in this source file)
 		  {
 			sBuff[i+18]='\0';					// Null terminate for atoi
 			cp=&sBuff[i+11];
 			iSize+=atoi(cp);					// module size
 		  }
-		else if (spCEL->cRel == 'U')			// used link to another CE module or system routine
+		else if (spCEL->cRel == CEL_REL_UNDEF_V0)	// undefined item - lilely a link to another clice module or system routine
 		  {
 			CE.bmField=0;						// Select which fields to read
 			CEL.bmField=CEF_LINK_ID_B0;			// Just get the ID to confirm if row already exists
