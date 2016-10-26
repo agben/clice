@@ -52,7 +52,7 @@ char *cpMenu[] =	{	"1) Projects",
 						"1) Next",
 						"2) Previous",
 						"3) Calls to",
-						"!4) Calls from",
+						"4) Called from",
 						"!5) Edit",
 						"!6) Delete",
 						"!7) Make",
@@ -69,13 +69,17 @@ int main(int argc, char **argv)
 
 	int option_index = 0;
 	int	i;
-	int iHits;								// number of hits found by each search
 	int	iOpt;								// selected menu option
+	int	iPick;								// selected list option
 	int iPos;								// position within a search list
 
+											// The following variables hold a master list [0] and a proposed master list [1]
+											// i.e. We have an established list of modules but may decide to switch that for the proposed list
+	int iHits[2];							// number of hits found by each search
+
 //#TODO	should use malloc for these?
-    char iList[CE_LIST_M0];					// list of selected clice db items
-    char sList[CE_LIST_M0][CE_NAME_S0+10];	// list of their names
+    char iList[CE_LIST_M0][2];					// list of selected clice db items
+    char sList[CE_LIST_M0][2][CE_NAME_S0+10];	// list of their names
     char *cpList[CE_LIST_M0];
 
     char sDisp[CE_DISP_M0][CE_DESC_S0+10];	// bespoke menu/list for display
@@ -142,39 +146,39 @@ int main(int argc, char **argv)
 				CEL.bmField=0;
 				ut_check(cef_main(FA_READ+FA_KEY5, 0) == FA_OK_IV0,	// prepare a select of all matching entries
 								"Read key5");						// jump to error: if SQL prepare fails.
-				iHits=0;
+				iHits[0]=0;
 				while (cef_main(FA_STEP, 0) == FA_OK_IV0)
 				  {
-					cpList[iHits]=sList[iHits];				// establish an array of pointers for nc_menu - #TODO must be a better way?
-					iList[iHits]=CE.iNo;
-					sprintf(sList[iHits++],"%s",CE.sName);	// pointers to the name of each matching record
+					cpList[iHits[0]]=sList[iHits[0]][0];		// establish an array of pointers for nc_menu - #TODO must be a better way?
+					iList[iHits[0]][0]=CE.iNo;
+					sprintf(sList[iHits[0]++][0],"%s",CE.sName);	// pointers to the name of each matching record
 
-					if (iHits == CE_LIST_M0)
+					if (iHits[0] == CE_LIST_M0)
 					  {
-						iHits--;
+						iHits[0]--;
 						nc_message("Too many matches - showing first page only");
 						sleep(2);
 						continue;
 					  }
 				  }
 
-				if (iHits == 0)							// no matches in clice database
+				if (iHits[0] == 0)							// no matches in clice database
 				  {
 					nc_message("No matches found");
 					sleep(2);
 				  }
 				else
 				  {
-					cpList[iHits]=(char *) NULL;		// mark end of search results list
+					cpList[iHits[0]]=(char *) NULL;		// mark end of search results list
 
-					iPos=(iHits == 1) ? 1 :
+					iPos=(iHits[0] == 1) ? 1 :
 						nc_menu(cpTitle+CE_SELECT_TITLE_P0,
 								cpList);					// display search results until selection or quit requested
 					if (iPos == NC_QUIT) iOpt=NC_QUIT;		// Pass on a quit request from the search results list
 
 					while (iOpt != NC_QUIT)
 					  {
-						CE.iNo=iList[iPos-1];				// Read more about the selected item
+						CE.iNo=iList[iPos-1][0];			// Read more about the selected item
 						CE.bmField=CEF_DESC_B0+CEF_LANG_B0;	// What to read from the ce database
 						CEL.bmField=0;
 						ut_check(	cef_main(FA_READ+FA_STEP, 0) == FA_OK_IV0,		// prepare a select for selected item
@@ -191,7 +195,7 @@ int main(int argc, char **argv)
 							sprintf(sDisp[2],"%c",CE.cLang);
 						cpDisp[1]=sDisp[1];
 						sprintf(sDisp[1],"Name=%s Language=%s",
-								sList[iPos-1],
+								sList[iPos-1][0],
 								sDisp[2]);
 
 						cpDisp[2]=sDisp[2];
@@ -209,7 +213,7 @@ int main(int argc, char **argv)
 						switch (iOpt)				// then check for menu selection actions
 						  {
 							case 1:					// Next item
-								if (iPos < iHits) iPos++;
+								if (iPos < iHits[0]) iPos++;
 								break;
 
 							case 2:					// Previous item
@@ -217,48 +221,70 @@ int main(int argc, char **argv)
 								break;
 
 							case 3:					// Calls to
-								CE.bmField=0;
-								CEL.bmField=CEF_LINK_CALLS_B0;	// read list of called subroutine/functions
-								memcpy(	CEL.sName,
-										sList[iPos-1],
-										CE_NAME_S0);
-								CEL.cRel=CEL_REL_UNDEF_V0;
-								ut_check(
-									cef_main(FA_READ+FA_KEY4,
-												0) == FA_OK_IV0,	// prepare a select of all matching entries
-									"Read key4");					// jump to error: if SQL prepare fails.
+							case 4:					// Called from
+								CE.bmField=0;		// need link details not module details
+								CEL.cRel=CEL_REL_UNDEF_V0;			// both calls to & from are classed as undefined
+								if (iOpt == 3)
+								  {
+									CEL.bmField=CEF_LINK_CALLS_B0;		// read list of called subroutine/functions
+									memcpy(	CEL.sName,
+											sList[iPos-1][0],
+											CE_NAME_S0);
+									ut_check(
+										cef_main(FA_READ+FA_KEY4,
+													0) == FA_OK_IV0,	// prepare a select of all modules called by CEL.sName
+										"Read key4");					// jump to error: if SQL prepare fails.
+								  }
+								else
+								  {
+									CEL.bmField=CEF_LINK_NAME_B0;		// read list of calling program/subroutine/functions
+									memcpy(	CEL.sCalls,
+											sList[iPos-1][0],
+											CE_NAME_S0);
+									ut_check(
+										cef_main(FA_READ+FA_KEY6,
+													0) == FA_OK_IV0,	// prepare a select of all modules that call CEL.sCalls
+										"Read key6");					// jump to error: if SQL prepare fails.
+								  }
 
-								i=0;
+								iHits[1]=0;
 								while (cef_main(FA_STEP, 0) == FA_OK_IV0)
 								  {
-									cpList[i]=sList[i];				// establish an array of pointers for nc_menu - #TODO must be a better way?
-									memcpy(	sList[i],
-											CEL.sCalls,
-											CE_NAME_S0);
-									iList[i++]=0;				// Will determine if each called item exists in clice later
-									if (i == CE_LIST_M0)		//#TODO need to handle large lists better - this will keep pausing
+									cpList[iHits[1]]=sList[iHits[1]][1];	// establish an array of pointers for nc_menu - #TODO must be a better way?
+									if (iOpt == 3)						// called modules
+										memcpy(	sList[iHits[1]][1],
+												CEL.sCalls,
+												CE_NAME_S0);
+									else								// calling modules
+										memcpy(	sList[iHits[1]][1],
+												CEL.sName,
+												CE_NAME_S0);
+									iList[iHits[1]++][1]=0;		// Will determine if each called item exists in clice later
+									if (iHits[1] == CE_LIST_M0)		//#TODO need to handle large lists better - this will keep pausing
 									  {
-										i--;
+										iHits[1]--;
 										nc_message("Too many matches - showing first page only");
 										sleep(2);
 										continue;
 									  }
 								  }
 
-								if (i == 0)						// no matches in clice database
+								if (iHits[1] == 0)						// no matches in clice database
 								  {
-									nc_message("No called items");
-									sleep(2);						// iList, sList, iPos and iHits are preserved so just continue.
+									if (iOpt == 3)
+										nc_message("No called routines found in clice");
+									else
+										nc_message("Not called from anything in clice");
+									sleep(2);						// iList[][0], sList[][0], iPos and iHits[0] are preserved so just continue.
 								  }
 								else
 								  {
-									iHits=i;						// can nolonger return to the previous menu list
-									cpList[iHits]=(char *) NULL;	// mark end of search results list
+									cpList[iHits[1]]=(char *) NULL;	// mark end of search results list
 
-									for (i=0; i < iHits; i++)
+									for (i=0; i < iHits[1]; i++)
 									  {
 										memcpy(	CE.sName,
-												sList[i],
+												sList[i][1],
 												CE_NAME_S0);
 										CE.bmField=CEF_ID_B0;		// See which called modules exist in clice
 										CEL.bmField=0;
@@ -267,19 +293,46 @@ int main(int argc, char **argv)
 												"Read key1");		// jump to error: if SQL prepare fails.
 
 										if (cef_main(FA_STEP,0) == FA_OK_IV0)
-											iList[i]=CE.iNo;
+											iList[i][1]=CE.iNo;
 										else
-											sprintf(sList[i],"!%s",CE.sName);	// Mark module as unknown in clice with a leading hash
+											sprintf(sList[i][1],"!%s",CE.sName);	// Mark module as unknown in clice with a leading hash
 									  }
 
-									iPos=nc_menu(cpTitle+CE_SELECT_TITLE_P0,
-												cpList);					// display search results until selection or quit requested
-									if (iPos == NC_QUIT) iOpt=NC_QUIT;		// Pass on a quit request and return to the master menu
+									iPick=nc_menu(	cpTitle+CE_SELECT_TITLE_P0,
+													cpList);					// display search results until selection or quit requested
+									if (iPick != NC_QUIT)						// Switch master search list with our proposed list
+									  {
+										iHits[0]=0;
+										for (i=0; i < iHits[1]; i++)
+										  {
+											if (sList[i][1][0] != '!')		// pick only the entries that are recorded in the clice db
+											  {
+												iList[iHits[0]][0]=iList[i][1];
+												memcpy(	sList[iHits[0]][0],
+														sList[i][1],
+														CE_NAME_S0);
+												iHits[0]++;
+												if (i == iPick-1) iPos=iHits[0];	// position of selected item within the new (clice db entries only) list
+											  }
+										  }
+
+
+
+//										iPos=i;
+//										iHits[0]=iHits[1];
+//										for (i=0; i<iHits[0]; i++)
+//										  {
+//											iList[i][0]=iList[i][1];
+//											memcpy(	sList[i][0],
+//													sList[i][1],
+//													CE_NAME_S0);
+//										  }
+									  }
 								  }
 								break;
 
 							case NC_QUIT:			// Quit item display so
-								if (iHits > 1)			// if only 1 hit then quit to main menu else
+								if (iHits[0] > 1)			// if only 1 hit then quit to main menu else
 								  {
 									iPos=nc_menu(	cpTitle+CE_SELECT_TITLE_P0,
 													cpList);		// display search results until selection or quit request
