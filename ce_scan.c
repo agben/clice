@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 
 		CE.bmField=FA_ALL_COLS_B0;				// Going to insert all new fields
 		ios=cef_main(FA_WRITE, 0);				// Write a new CE module to db
-		ut_check(ios == FA_OK_IV0, "write");
+		ut_check(ios == FA_OK_IV0, "write %d", ios);
 	 }
 	else										// exits so update last modified date/time
 	 {
@@ -114,9 +114,8 @@ int main(int argc, char **argv)
 		spCE->iMTime=gxt_iTime[0];
 
 		CE.bmField=CEF_LAST_MOD_B0;				// only need to update last modified date & time
-		CEL.bmField=0;
 		ios=cef_main(FA_UPDATE+FA_KEY0, 0);		// update CE module in db
-		ut_check(ios == FA_OK_IV0, "rewrite");
+		ut_check(ios == FA_OK_IV0, "rewrite %d", ios);
 	 }
 
 error:
