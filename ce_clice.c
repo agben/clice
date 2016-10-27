@@ -44,15 +44,15 @@ char *cpTitle[] =	{	"clice Menu",
 char *cpMenu[] =	{	"1) Projects",
 						"2) Programs",
 						"!3) System Routines",
-						"!4) Libraries",
+						"4) Libraries",
 			(char *) NULL,
 						"!1) Make all",
 						"!2) Make install",
 			(char *) NULL,
 						"1) Next",
 						"2) Previous",
-						"3) Calls to",
-						"4) Called from",
+						"3) Links to",
+						"4) Links from",
 						"!5) Edit",
 						"!6) Delete",
 						"!7) Make",
@@ -189,12 +189,16 @@ int main(int argc, char **argv)
 						cpDisp[0]=sDisp[0];					// establish an array of pointers for nc_menu
 						sprintf(sDisp[0]," ");
 
-						if (CE.cLang == 'S')
+						if (CE.cLang == 'C')
+							sprintf(sDisp[2],"C program");
+						else if (CE.cLang == 'H')
+							sprintf(sDisp[2],"C library");
+						else if (CE.cLang == 'S')
 							sprintf(sDisp[2],"Shell script");
 						else
 							sprintf(sDisp[2],"%c",CE.cLang);
 						cpDisp[1]=sDisp[1];
-						sprintf(sDisp[1],"Name=%s Language=%s",
+						sprintf(sDisp[1],"Name=%s    (%s)",
 								sList[iPos-1][0],
 								sDisp[2]);
 
