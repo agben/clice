@@ -87,7 +87,8 @@ case $CE_EDD in
 	 then
 		if [ $CE_LANG != "TXT" ]		# clice doesn't track txt files
 		 then
-			ce_scan $CE_PROGN --language $CE_LANG		# Update clice to show new version created
+			ce_scan $CE_FNAM --language $CE_LANG		# Update clice to show new version created
+#			ce_scan $CE_PROGN --language $CE_LANG		# Update clice to show new version created
 		fi
 #TODO should use a config setting for Backup folder location
 		mv *~ ~/Code/Backup/				# using wildcard (*~) to keep folders tidy

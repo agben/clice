@@ -42,7 +42,8 @@ clean:
 
 # Install project for operational use
 install: $(includedir)/ce_main.h $(includedir)/ce_main_def.h /etc/bash_completion.d/ce_complete.sh \
-		$(bindir)/ce_edit.sh $(bindir)/ce_edit_make.sh $(bindir)/clice $(bindir)/ce_scan $(bindir)/ce_scan_obj
+		$(bindir)/ce_edit.sh $(bindir)/ce_edit_make.sh $(bindir)/clice $(bindir)/ce_scan \
+		$(bindir)/ce_scan_obj
 $(includedir)/ce_main.h: ce_main.h
 	sudo cp $^ $@
 $(includedir)/ce_main_def.h: ce_main_def.h
@@ -68,4 +69,5 @@ uninstall:
 	sudo rm $(bindir)/ce_edit_make
 	sudo rm $(bindir)/clice
 	sudo rm $(bindir)/ce_scan
+	sudo rm $(bindir)/ce_scan_obj
 	sudo rm /etc/bash_completion.d/ce_complete.sh

@@ -14,7 +14,10 @@
 //
 //--------------------------------------------------------------
 
+#include <fcntl.h>		// file access functions
 #include <getopt.h>		// for getopt_long - argument parsing
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>		// for strcopy
 
 #include <fa_def.h>		// file actions
@@ -22,11 +25,16 @@
 #include <ut_date.h>	// date and time utilities
 #include <ut_error.h>	// for debug and checks
 
+#define	BUFF_S0 200
 
 int main(int argc, char **argv)
   {
-	int i;
 	int ios=0;
+
+	FILE *fp;
+	char sBuff[BUFF_S0];		// input buffer for init file reads
+	int i, j, k;
+	char *cp;
 
 	spCE = (struct CE_FIELDS*) &CE;
 	spCEL = (struct CEL_FIELDS*) &CEL;
@@ -71,15 +79,63 @@ int main(int argc, char **argv)
 	ut_check(optind == argc-1,					// still an argument remaining? the program to scan
 			"Usage = ce_scan <program> --language c");
 
+	cp=strrchr(argv[optind],'.');				// Find last dot in the passed program name before the file extension
+	ut_check( cp != NULL,
+			"No valid file extension");
+	i=cp-&argv[optind][0];						// size of program name minus file extension
+	if (i > CE_NAME_S0) i=CE_NAME_S0;			// #TODO warn about truncated filename
+	strncpy(	spCE->sName,					// copy string and ensure a trailing null
+				argv[optind],
+				i);								// Extract program name but exclude the extension
+
 	ut_check(cef_main(FA_INIT+FA_OPEN, 0) == 0,	// Initialise libgxtfa and open clice db
 			"Failed to open clice db");
 
-	strcpy(spCE->sName, argv[optind]);						// Program name
+//	strcpy(spCE->sName, argv[optind]);						// Program name
 	ut_check(getcwd(CE.sDir, sizeof(CE.sDir)), "getcwd");	// get current working directory
 
 	ut_debug("Program to scan= %s",spCE->sName);
 	ut_debug("Current directory= %s",spCE->sDir);
 	ut_debug("language = %c",spCE->cLang);
+
+	spCE->sDesc[0]=0;							// Mark description field as empty
+
+	fp = fopen(argv[optind], "r");				// Open file as read-only
+	ut_check(fp != NULL, "open source file");	// jumps to error: if not ok
+
+	while (fgets(sBuff, BUFF_S0, fp) != NULL &&
+			spCE->sDesc[0] == 0)				// Stop once we have a description - remove when further checks added
+	  {
+		ut_debug("in: %s", sBuff);
+
+		if ((spCE->cLang == 'C' || spCE->cLang == 'H') &&	// C code so look for // comment lines
+			sBuff[0] == '/' && sBuff[1] == '/')	// commented line
+		  {
+			if (spCE->sDesc[0] == 0)			// Still not found a description
+			  {
+				j=0;							// check on the number of non-alphabetics used
+				k=0;							// output counter
+				i=2;							// input counter
+				while (sBuff[i] != 10 && k < (CE_DESC_S0 - 1))	// unpack description
+				  {
+					if (sBuff[i] >= ' ')
+					  {
+						spCE->sDesc[k++]=sBuff[i];
+						if ( sBuff[i] < 'A' || sBuff[i] > 'z' ||
+							(sBuff[i] > 'Z' && sBuff[i] < 'a')) j++;
+					  }
+					i++;
+				  }
+
+				if ((k-j) < 10)
+					spCE->sDesc[0]=0;			// Not enough alphabetic characters to be a description
+				else
+					spCE->sDesc[k]=0;
+			  }
+			else
+				continue;						// Have a description so ignore commented lines
+		  }
+	  }
 
 	ut_date_now();								// get current date and time
 
@@ -101,7 +157,7 @@ int main(int argc, char **argv)
 		spCE->iStatus=0;
 		spCE->iMDate=spCE->iCDate=gxt_iDate[0];
 		spCE->iMTime=spCE->iCTime=gxt_iTime[0];
-		sprintf(spCE->sDesc, "Need to scan source for description");
+//		sprintf(spCE->sDesc, "Need to scan source for description");
 		spCE->iSize=0;
 
 		CE.bmField=FA_ALL_COLS_B0;				// Going to insert all new fields
@@ -113,12 +169,13 @@ int main(int argc, char **argv)
 		spCE->iMDate=gxt_iDate[0];
 		spCE->iMTime=gxt_iTime[0];
 
-		CE.bmField=CEF_LAST_MOD_B0;				// only need to update last modified date & time
+		CE.bmField=CEF_LAST_MOD_B0+CEF_DESC_B0;	// only need to update last modified date & time
 		ios=cef_main(FA_UPDATE+FA_KEY0, 0);		// update CE module in db
 		ut_check(ios == FA_OK_IV0, "rewrite %d", ios);
 	 }
 
 error:
+	if (fp != NULL) fclose(fp);
 	cef_main(FA_CLOSE, 0);
 	return ios;
   }
