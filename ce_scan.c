@@ -91,7 +91,6 @@ int main(int argc, char **argv)
 	ut_check(cef_main(FA_INIT+FA_OPEN, 0) == 0,	// Initialise libgxtfa and open clice db
 			"Failed to open clice db");
 
-//	strcpy(spCE->sName, argv[optind]);						// Program name
 	ut_check(getcwd(CE.sDir, sizeof(CE.sDir)), "getcwd");	// get current working directory
 
 	ut_debug("Program to scan= %s",spCE->sName);
@@ -108,14 +107,19 @@ int main(int argc, char **argv)
 	  {
 		ut_debug("in: %s", sBuff);
 
-		if ((spCE->cLang == 'C' || spCE->cLang == 'H') &&	// C code so look for // comment lines
-			sBuff[0] == '/' && sBuff[1] == '/')	// commented line
+		if (((spCE->cLang == 'C' || spCE->cLang == 'H') &&	// C code so look for // comment lines
+			sBuff[0] == '/' && sBuff[1] == '/') ||
+			(spCE->cLang == 'S' && sBuff[0] == '#'))		// Shell script so look for # comment lines
 		  {
 			if (spCE->sDesc[0] == 0)			// Still not found a description
 			  {
 				j=0;							// check on the number of non-alphabetics used
 				k=0;							// output counter
-				i=2;							// input counter
+				if (spCE->cLang == '#')
+					i=1;						// start reading commented line after the comment marker
+				else
+					i=2;						// or markers for //
+
 				while (sBuff[i] != 10 && k < (CE_DESC_S0 - 1))	// unpack description
 				  {
 					if (sBuff[i] >= ' ')
