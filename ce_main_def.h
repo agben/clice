@@ -22,9 +22,9 @@
 #define	CE_MAIN_TABLE_P0	0	// The main CE module data table
 #define	CE_LINK_TABLE_P0	1	// Table used to show links between CE modules
 
-#define	CE_KEY_M0			5	// Number of keys defined for the SQL generator
+#define	CE_KEY_M0		5		// Number of keys defined for the SQL generator
 
-#define	CE_FIELD_M0	12		// total number of int + blob fields
+#define	CE_FIELD_M0		14		// max number of int + blob fields
 
 
 struct fa_sql_column CEF[CE_TABLE_M0][CE_FIELD_M0] =	//Declare the columns used in each table
@@ -37,6 +37,8 @@ struct fa_sql_column CEF[CE_TABLE_M0][CE_FIELD_M0] =	//Declare the columns used 
 	{"type",	FA_COL_INT_B0,		(char*)&CE.iType,		FA_FIELD_INT_S0},
 	{"status",	FA_COL_INT_B0,		(char*)&CE.iStatus,		FA_FIELD_INT_S0},
 	{"dir",		FA_COL_BLOB_B0,		(char*)&CE.sDir,		CE_DIR_S0},
+	{"source",	FA_COL_BLOB_B0,		(char*)&CE.sSource,		CE_SOURCE_S0},
+	{"project",	FA_COL_BLOB_B0,		(char*)&CE.sProject,	CE_PROJECT_S0},
 	{"cdate",	FA_COL_INT_B0,		(char*)&CE.iCDate,		FA_FIELD_INT_S0},
 	{"ctime",	FA_COL_INT_B0,		(char*)&CE.iCTime,		FA_FIELD_INT_S0},
 	{"mdate",	FA_COL_INT_B0,		(char*)&CE.iMDate,		FA_FIELD_INT_S0},
@@ -52,6 +54,7 @@ struct fa_sql_column CEF[CE_TABLE_M0][CE_FIELD_M0] =	//Declare the columns used 
 	{"name",	FA_COL_BLOB_B0,		(char*)&CEL.sName,		CE_NAME_S0},
 	{"calls",	FA_COL_BLOB_B0,		(char*)&CEL.sCalls,		CE_NAME_S0},
 	{"rel",		FA_COL_CHAR_B0,		(char*)&CEL.cRel,		FA_FIELD_CHAR_S0},
+	{"code",	FA_COL_BLOB_B0,		(char*)&CEL.sCode,		CE_CODE_LINE_S0},
 	{"time",	FA_COL_INT_B0,		(char*)&CEL.iTime,		FA_FIELD_INT_S0},
 	}
   };
@@ -59,7 +62,7 @@ struct fa_sql_column CEF[CE_TABLE_M0][CE_FIELD_M0] =	//Declare the columns used 
 struct fa_sql_table CET[CE_TABLE_M0] =		//Declare the tables used in ce_main.db
   {// name		alias	Column count	Fields	pointer to column details
 	{"ce_main",	"ce",	CE_FIELD_M0,	0,		&CEF[0][0],},
-	{"ce_link",	"cl",	5,				0,		&CEF[1][0]}
+	{"ce_link",	"cl",	6,				0,		&CEF[1][0]}
   };
 
 struct fa_sql_db CEB =				//Declare database details for clice_main.db

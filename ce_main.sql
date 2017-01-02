@@ -12,6 +12,8 @@ CREATE TABLE ce_main (
 	type	INTEGER,
 	status	INTEGER,
 	dir		CHARACTER(30),
+	source	CHARACTER(30),
+	project	CHARACTER(3),
 	cdate	INTEGER,
 	ctime	INTEGER,
 	mdate	INTEGER,
@@ -27,4 +29,5 @@ CREATE TABLE ce_link (
 	name	CHARACTER(30),
 	calls	CHARACTER(30),
 	rel		CHARACTER(1),
+	code	CHARACTER(60),
 	time	INTEGER );

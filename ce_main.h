@@ -24,22 +24,27 @@ void	ce_version(void);			// display version, copyright and licence details
 #define CEF_TYPE_B0		0x00000004	// Type of module - prog, library, parameter, etc
 #define CEF_STATUS_B0	0x00000008	// Status of module
 #define CEF_DIR_B0		0x00000010	// Source directory of module
-#define CEF_CDATE_B0	0x00000020	// Last compiled date
-#define CEF_CTIME_B0	0x00000040	// Last compiled time
-#define CEF_MDATE_B0	0x00000080	// Last modified date
-#define CEF_MTIME_B0	0x00000100	// Last modified time
-#define CEF_DESC_B0		0x00000200	// Module description
-#define CEF_LANG_B0		0x00000400	// Language code - 'C', 'F'ortran
-#define CEF_SIZE_B0		0x00000800	// Object size
+#define CEF_SOURCE_B0	0x00000020	// Source file of module
+#define CEF_PROJECT_B0	0x00000040	// Project code name
+#define CEF_CDATE_B0	0x00000080	// Last compiled date
+#define CEF_CTIME_B0	0x00000100	// Last compiled time
+#define CEF_MDATE_B0	0x00000200	// Last modified date
+#define CEF_MTIME_B0	0x00000400	// Last modified time
+#define CEF_DESC_B0		0x00000800	// Module description
+#define CEF_LANG_B0		0x00001000	// Language code - 'C', 'F'ortran
+#define CEF_SIZE_B0		0x00002000	// Object size
 
 					// The following are common combinations of fields - usually read or updated together
 #define CEF_LAST_COMP_B0	(CEF_CDATE_B0 +	CEF_CTIME_B0)
 #define CEF_LAST_MOD_B0		(CEF_MDATE_B0 +	CEF_MTIME_B0)
 
 //------------------------------Identify the size of any blob/string fields
-#define	CE_NAME_S0	30
-#define	CE_DIR_S0	30
-#define	CE_DESC_S0	40
+#define	CE_NAME_S0		30
+#define	CE_DIR_S0		30
+#define	CE_SOURCE_S0	30
+#define	CE_PROJECT_S0	3
+#define	CE_DESC_S0		40
+#define	CE_CODE_LINE_S0	60
 
 //------------------------------Identifiers for the type of each CE item and link types to other CE items
 #define CE_PRG_T0	1		//	Program
@@ -65,6 +70,8 @@ struct CE_FIELDS
 	int		iSize;			// Object size
 	char	sName[CE_NAME_S0];	// Null terminated module name
 	char	sDir[CE_DIR_S0];	// Null terminated source directory of module
+	char	sSource[CE_SOURCE_S0];	// Null terminated source file of module
+	char	sProject[CE_PROJECT_S0];	// Null terminated project code #TODO could get this from end of sDir instead of using db
 	char	sDesc[CE_DESC_S0];	// Null terminated module description
 	char	cLang;			// Language code - 'C', 'F'ortran
   } CE, *spCE;
@@ -77,16 +84,18 @@ struct CE_FIELDS
 #define CEF_LINK_NAME_B0	0x00000002	// This CE item/module/record name
 #define CEF_LINK_CALLS_B0	0x00000004	// Item/module/record that it is linked to
 #define CEF_LINK_REL_B0		0x00000008	// Relationship of that link- i.e. call to program or inclusion of library
-#define CEF_LINK_TIME_B0	0x00000010	// Time stamp for updating links
+#define CEF_LINK_CODE_B0	0x00000010	// Source code line where relationship link is made
+#define CEF_LINK_TIME_B0	0x00000020	// Time stamp for updating links
 
 struct CEL_FIELDS
   {
-	int		bmField;		// bitmap of selected fields/columns. i.e. which fields to read/update
-	int		iNo;			// Unique primary key number - allocated by SQL
-	int		iTime;			// Time of last update - used as a marker to see what hasn't changed
-	char	sName[CE_NAME_S0];	// Null terminated module name
-	char	sCalls[CE_NAME_S0];	// Null terminated name of called module
-	char	cRel;			// Type of relationship to cCalls
+	int		bmField;				// bitmap of selected fields/columns. i.e. which fields to read/update
+	int		iNo;					// Unique primary key number - allocated by SQL
+	int		iTime;					// Time of last update - used as a marker to see what hasn't changed
+	char	sName[CE_NAME_S0];		// Null terminated module name
+	char	sCalls[CE_NAME_S0];		// Null terminated name of called module
+	char	sCode[CE_CODE_LINE_S0];	// Null terminated snippet of source code
+	char	cRel;					// Type of relationship to cCalls
   } CEL, *spCEL;
 
 //------------------------------Object symbols identified by the nm routine

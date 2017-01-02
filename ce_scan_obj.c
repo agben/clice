@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 			cp=&sBuff[i+11];
 			iSize+=atoi(cp);					// module size
 		  }
-		else if (spCEL->cRel == CEL_REL_UNDEF_V0)	// undefined item - lilely a link to another clice module or system routine
+		else if (spCEL->cRel == CEL_REL_UNDEF_V0)	// undefined item - likely a link to another clice module or system routine
 		  {
 			CE.bmField=0;						// Select which fields to read
 			CEL.bmField=CEF_LINK_ID_B0;			// Just get the ID to confirm if row already exists

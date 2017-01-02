@@ -79,13 +79,18 @@ int main(int argc, char **argv)
 	ut_check(optind == argc-1,					// still an argument remaining? the program to scan
 			"Usage = ce_scan <program> --language c");
 
-	cp=strrchr(argv[optind],'.');				// Find last dot in the passed program name before the file extension
+	strncpy(	spCE->sSource,					// Store source file name
+				argv[optind],
+				CE_SOURCE_S0);
+
+	cp=strrchr(spCE->sSource,'.');				// Find last dot in the passed program name before the file extension
 	ut_check( cp != NULL,
 			"No valid file extension");
-	i=cp-&argv[optind][0];						// size of program name minus file extension
+	i=cp-spCE->sSource;							// size of program name minus file extension
+//	i=cp-&argv[optind][0];						// size of program name minus file extension
 	if (i > CE_NAME_S0) i=CE_NAME_S0;			// #TODO warn about truncated filename
 	strncpy(	spCE->sName,					// copy string and ensure a trailing null
-				argv[optind],
+				spCE->sSource,
 				i);								// Extract program name but exclude the extension
 
 	ut_check(cef_main(FA_INIT+FA_OPEN, 0) == 0,	// Initialise libgxtfa and open clice db
