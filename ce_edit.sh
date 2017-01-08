@@ -168,7 +168,8 @@ case $CE_CO in
 
 	if [ -f "$CE_ONAM" ]							# sucessfully created an object file?
 	 then
-		nm -t d -f posix $CE_ONAM >> $CE_PROGN.ce	# Analyse obj file read for CE
+#		nm -t d -f posix $CE_ONAM >> $CE_PROGN.ce	# Analyse obj file read for CE
+		objdump -rtl $CE_ONAM >> $CE_PROGN.ce		# Analyse obj file read for CE
 		ce_scan_obj $CE_PROGN						# Scan links to other modules for CE
 		rm $CE_PROGN.ce
 	fi
