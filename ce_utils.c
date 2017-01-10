@@ -25,8 +25,8 @@ void ce_help(void)
 	printf("      Scan program details and build a documentation database with:\n");
 	printf("              ce_scan <source-file> --language <lang>\n");
 	printf("                      where source-file = program source name and lang = C or F'ortran'\n");
-	printf("              ce_scan_obj <object>\n");
-	printf("                      where object = compiled object code\n");
+	printf("              ce_scan_obj <object.ce>\n");
+	printf("                      where object = output from objdump\n");
 	printf("      Manage program documentation with:\n");
 	printf("              clice\n\n");
 	printf("For general notes on clice: <www.benningtons.net>\n");
@@ -34,7 +34,7 @@ void ce_help(void)
 
 void ce_version(void)
   {
-	printf("clice - the Command-LIne Coding Ecosystem) v0.1.3.0\n");
+	printf("clice - the Command-LIne Coding Ecosystem) v0.1.5.5\n");
 	printf("        versioning = major.minor.bugfix.documentation\n\n");
 	printf("Copyright (C) Andrew Bennington 2015 <www.benningtons.net>\n");
 	printf("Licence GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n");

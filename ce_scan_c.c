@@ -1,19 +1,19 @@
 //--------------------------------------------------------------
 //
-// Basic clice updater based on passed parameters - doesn't scan source or object files (yet)
+// Scan C source files and update the clice database
 //
-//	usage:	ce_scan <prog> --language ?
-//		where	prog		= program name
-//			--language <?>	= set program language [mandatory]
+//	usage:	ce_scan_c <source.c>
+//		where	source.c	= source filename or library name i.e. library.h
 //			--version	= version, copyright and licence details
 //			--help		= basic help
 //
 // #TODO - could also be used to check for edit permissions or other warnings?
 //
-//	GNU GPLv3+ licence	clice - The command-line coding ecosystem by Andrew Bennington 2015 <www.benningtons.net>
+//	GNU GPLv3+ licence	clice - The command-line coding ecosystem by Andrew Bennington 2017 <www.benningtons.net>
 //
 //--------------------------------------------------------------
 
+#include <ctype.h>		// for toupper
 #include <fcntl.h>		// file access functions
 #include <getopt.h>		// for getopt_long - argument parsing
 #include <string.h>		// for strcopy
@@ -41,12 +41,10 @@ int main(int argc, char **argv)
 	static struct option long_options[] = {
 		{"help",	0,	0,		0},		// 0	Keep this order for parsing after getopt_long
 		{"version",	0,	0,		0},		// 1
-		{"language",1,	0,		0},		// 2
 		{NULL,		0,	NULL,	0}
 	};
 
 	int option_index = 0;
-
 
 	while ((i=getopt_long(	argc,				//number of arguments
 							argv,				//argument values - an array of pointers to each argument
@@ -66,57 +64,38 @@ int main(int argc, char **argv)
 			ce_version();
 			return 0;
 		 }
-		else if (option_index == 2)				// --language
-			CE.cLang=optarg[0];					// #TODO - validate
 	 }
 
+
 	ut_check(optind == argc-1,					// still an argument remaining? the program to scan
-			"Usage = ce_scan <program> --language c");
+		"Usage = ce_scan_c <source.c>");
 
 	strncpy(	CE.sSource,						// Store source file name
 				argv[optind],
 				CE_SOURCE_S0);
-
-	cp=strrchr(CE.sSource,'.');					// Find last dot in the passed program name before the file extension
-	ut_check( cp != NULL,
-			"No valid file extension");
-	i=cp-CE.sSource;							// size of program name minus file extension
-	if (i > CE_NAME_S0) i=CE_NAME_S0;			// #TODO warn about truncated filename
-	strncpy(	CE.sName,						// copy string and ensure a trailing null
-				CE.sSource,
-				i);								// Extract program name but exclude the extension
 
 	ut_check(cef_main(FA_INIT+FA_OPEN, 0) == 0,	// Initialise libgxtfa and open clice db
 			"Failed to open clice db");
 
 	ut_check(getcwd(CE.sDir, sizeof(CE.sDir)), "getcwd");	// get current working directory
 
-	ut_debug("Program to scan= %s",CE.sName);
-	ut_debug("Current directory= %s",CE.sDir);
-	ut_debug("language = %c",CE.cLang);
+	CE.sDesc[0]='\0';							// Mark description field as empty
 
-	CE.sDesc[0]=0;								// Mark description field as empty
-
-	fp = fopen(argv[optind], "r");				// Open file as read-only
+	fp = fopen(CE.sSource, "r");				// Open file as read-only
 	ut_check(fp != NULL, "open source file");	// jumps to error: if not ok
 
 	while (fgets(sBuff, BUFF_S0, fp) != NULL &&
-			CE.sDesc[0] == 0)					// Stop once we have a description - remove when further checks added
+			CE.sDesc[0] == '\0')				// Stop once we have a description - remove when further checks added
 	  {
 		ut_debug("in: %s", sBuff);
 
-		if (((CE.cLang == 'C' || CE.cLang == 'H') &&	// C code so look for // comment lines
-			sBuff[0] == '/' && sBuff[1] == '/') ||
-			(CE.cLang == 'S' && sBuff[0] == '#'))		// Shell script so look for # comment lines
+		if (sBuff[0] == '/' && sBuff[1] == '/')	// look for comment lines	#TODO check for /* comments */
 		  {
-			if (CE.sDesc[0] == 0)				// Still not found a description
+			if (CE.sDesc[0] == '\0')			// Still not found a description
 			  {
 				j=0;							// check on the number of non-alphabetics used
 				k=0;							// output counter
-				if (CE.cLang == 'S')
-					i=1;						// start reading commented line after the comment marker
-				else
-					i=2;						// or markers for //
+				i=2;							// start reading commented line after the comment markers
 
 				int iSpace=0;					// flag to exclude leading or multiple spaces in a description
 				while (sBuff[i] != '\n' && k < (CE_DESC_S0 - 1))	// unpack description
@@ -136,19 +115,39 @@ int main(int argc, char **argv)
 					i++;
 				  }
 
-				if ((k-j) < 10)
-					CE.sDesc[0]=0;				// Not enough alphabetic characters to be a description
-				else
-					CE.sDesc[k]=0;
+				if ((k-j) < 10) k=0;			// Not enough alphabetic characters to be a description
+				CE.sDesc[k]='\0';
 			  }
 			else
 				continue;						// Have a description so ignore commented lines
 		  }
 	  }
 
+	fclose(fp);									// finished with source code file
+	fp=NULL;
+
 	ut_date_now();								// get current date and time
 	CE.iMDate=gxt_iDate[0];
 	CE.iMTime=gxt_iTime[0];
+
+	cp=strrchr(CE.sSource,'.');					// Find last dot in the passed program name before the file extension
+	ut_check( cp != NULL,
+			"No valid file extension");
+	i=cp-CE.sSource;							// size of program name minus file extension
+	if (i > CE_NAME_S0) i=CE_NAME_S0;			// #TODO warn about truncated filename
+	sprintf(sBuff, "%.*s.ce", i, CE.sSource);
+	sprintf(CE.sName, "%.*s", i, CE.sSource);
+
+	CE.cLang=toupper(CE.sSource[i+1]);			// #TODO - validate
+
+	fp = fopen(sBuff, "r");						// Open ctags file as read-only
+	ut_check(fp != NULL, "open ctags file");	// jumps to error: if not ok
+
+	while (fgets(sBuff, BUFF_S0, fp) != NULL)
+	  {
+		ut_debug("in: %s", sBuff);
+		printf("in: %s\n", sBuff);
+	  }
 
 	CE.bmField=CEF_ID_B0;						// only need to read ID to confirm if this program exists in CE
 	CEL.bmField=0;

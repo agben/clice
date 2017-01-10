@@ -85,11 +85,19 @@ case $CE_EDD in
 
 	if [ -f "$CE_FNAM"~ ]				# If created a new version, move the previous to the Backup folder
 	 then
-		if [ $CE_LANG != "TXT" ]		# clice doesn't track txt files
-		 then
-			ce_scan $CE_FNAM --language $CE_LANG		# Update clice to show new version created
-#			ce_scan $CE_PROGN --language $CE_LANG		# Update clice to show new version created
-		fi
+		case "$CE_LANG" in
+		 [CH])							# .c c programs or .h c library files
+			ctags --c-kinds=f -x $CE_FNAM > $CE_PROGN.ce	# scan source code for C symbols
+			ce_scan_c $CE_FNAM			# Update clice to show new version created
+			rm $CE_PROGN.ce
+		 ;;
+		 TXT)							# ignore text files
+		 ;;
+		 SH)							# Shell scripts.
+			ce_scan_bash $CE_FNAM		# Update clice to show new version created
+		 ;;
+		esac
+
 #TODO should use a config setting for Backup folder location
 		mv *~ ~/Code/Backup/				# using wildcard (*~) to keep folders tidy
 #TODO Could keep several versions in Backup?
@@ -169,7 +177,7 @@ case $CE_CO in
 	if [ -f "$CE_ONAM" ]							# sucessfully created an object file?
 	 then
 #		nm -t d -f posix $CE_ONAM >> $CE_PROGN.ce	# Analyse obj file read for CE
-		objdump -rtl $CE_ONAM >> $CE_PROGN.ce		# Analyse obj file read for CE
+		objdump -rtl $CE_ONAM > $CE_PROGN.ce		# Analyse obj file read for CE
 		ce_scan_obj $CE_PROGN						# Scan links to other modules for CE
 		rm $CE_PROGN.ce
 	fi
