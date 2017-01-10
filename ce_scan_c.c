@@ -27,8 +27,7 @@
 
 int main(int argc, char **argv)
   {
-	int ios=0;
-
+	void ce_scan_c_update(void);
 	FILE *fp;
 	char sBuff[BUFF_S0];		// input buffer for init file reads
 	int i, j, k;
@@ -136,9 +135,14 @@ int main(int argc, char **argv)
 	i=cp-CE.sSource;							// size of program name minus file extension
 	if (i > CE_NAME_S0) i=CE_NAME_S0;			// #TODO warn about truncated filename
 	sprintf(sBuff, "%.*s.ce", i, CE.sSource);
-	sprintf(CE.sName, "%.*s", i, CE.sSource);
+//	sprintf(CE.sName, "%.*s", i, CE.sSource);
 
 	CE.cLang=toupper(CE.sSource[i+1]);			// #TODO - validate
+
+	CE.iStatus=0;
+	CE.iCDate=CE.iMDate;
+	CE.iCTime=CE.iMTime;
+	CE.iSize=0;
 
 	fp = fopen(sBuff, "r");						// Open ctags file as read-only
 	ut_check(fp != NULL, "open ctags file");	// jumps to error: if not ok
@@ -146,42 +150,82 @@ int main(int argc, char **argv)
 	while (fgets(sBuff, BUFF_S0, fp) != NULL)
 	  {
 		ut_debug("in: %s", sBuff);
-		printf("in: %s\n", sBuff);
+
+		for (i = 0; i < BUFF_S0 && sBuff[i] != ' '; i++);	// skip past item name and
+		for ( ; i < BUFF_S0 && sBuff[i] == ' '; i++);		// skip past following spaces to find item type
+
+		if (memcmp(&sBuff[i], "function", 8) == 0)			// is the item a function definition?
+		  {
+			if (memcmp(sBuff, "main", 4) == 0)				// replace 'main' modules with the source filename
+				for (i = 0; i < CE_NAME_S0 &&
+						CE.sSource[i] != '\0' &&
+						CE.sSource[i] != '.'; i++)
+					CE.sName[i]=CE.sSource[i];
+			else
+				for (i=0; i < CE_NAME_S0 &&
+									sBuff[i] != ' '; i++)	// otherwise copy the item name
+					CE.sName[i]=sBuff[i];
+			for ( ; i < CE_NAME_S0; i++) CE.sName[i]='\0';  // null fill remainder of string
+
+			ce_scan_c_update();								// update clice db
+		  }
 	  }
 
-	CE.bmField=CEF_ID_B0;						// only need to read ID to confirm if this program exists in CE
-	CEL.bmField=0;
-	if (cef_main(FA_READ+FA_KEY1+FA_STEP, 0) == FA_NODATA_IV0)	// module not found so create a new CE module
-	 {
-		if (CE.cLang == 'H')
-		 {
-			printf("CE: New library module added - %s\n", CE.sName);
-			CE.iType=CE_LIB_T0;
-		 }
-		else
-		 {
-			printf("CE: New program module added - %s\n", CE.sName);
-			CE.iType=CE_PRG_T0;
-		 }
+	if (CE.cLang == 'H')								// need to update library modules
+	  {
+		for (i = 0; i < CE_NAME_S0 &&
+					CE.sSource[i] != '\0' &&
+					CE.sSource[i] != '.'; i++)
+			CE.sName[i]=CE.sSource[i];
+		for ( ; i < CE_NAME_S0; i++) CE.sName[i]='\0';  // null fill remainder of string
 
-		CE.iStatus=0;
-		CE.iCDate=CE.iMDate;
-		CE.iCTime=CE.iMTime;
-		CE.iSize=0;
+		ce_scan_c_update();								// update clice db
+	  }
 
-		CE.bmField=FA_ALL_COLS_B0;				// Going to insert all new fields
-		ios=cef_main(FA_WRITE, 0);				// Write a new CE module to db
-		ut_check(ios == FA_OK_IV0, "write %d", ios);
-	 }
-	else										// exits so update last modified date/time
-	 {
-		CE.bmField=CEF_LAST_MOD_B0+CEF_DESC_B0;	// only need to update last modified date & time
-		ios=cef_main(FA_UPDATE+FA_KEY0, 0);		// update CE module in db
-		ut_check(ios == FA_OK_IV0, "rewrite %d", ios);
-	 }
 
 error:
 	if (fp != NULL) fclose(fp);
 	cef_main(FA_CLOSE, 0);
-	return ios;
-  }
+	return 0;
+  };
+
+
+//--------------------------------------------------------------
+//
+// Update or create a clice db entry for the details held in the CE struct
+//
+//--------------------------------------------------------------
+
+void ce_scan_c_update(void)
+  {
+	int ios;
+
+
+	CE.bmField=CEF_ID_B0;							// only need to read ID to confirm if this module exists in CE
+	CEL.bmField=0;
+	if (cef_main(FA_READ+FA_KEY1+FA_STEP, 0) == FA_NODATA_IV0)	// module not found so create a new CE module
+	  {
+		if (CE.cLang == 'H')
+		  {
+			printf("CE: New library module added - %s\n", CE.sName);
+			CE.iType=CE_LIB_T0;
+		  }
+		else
+		  {
+			printf("CE: New program module added - %s\n", CE.sName);
+			CE.iType=CE_PRG_T0;
+		  }
+
+		CE.bmField=FA_ALL_COLS_B0;				// Going to insert all new fields
+		ios=cef_main(FA_WRITE, 0);				// Write a new CE module to db
+		ut_check(ios == FA_OK_IV0, "write %d", ios);
+	  }
+	else										// exists so update last modified date/time
+	  {
+		CE.bmField=CEF_LAST_MOD_B0+CEF_DESC_B0;	// and description (in case changed)
+		ios=cef_main(FA_UPDATE+FA_KEY0, 0);		// update CE module in db
+		ut_check(ios == FA_OK_IV0, "rewrite %d", ios);
+	  }
+error:
+	return;
+  };
