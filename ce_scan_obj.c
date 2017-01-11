@@ -74,8 +74,6 @@ int main(int argc, char **argv)
 
 	ut_date_now();									// get current date & time
 
-//	strncpy(spCEL->sName, argv[1], CE_NAME_S0);		// Calling program name
-//	sprintf(&sBuff[0], "%s.ce", spCEL->sName);		// object filename to be scanned
 	sprintf(&sBuff[0], "%s.ce", argv[1]);			// objdump filename to be scanned
 
 	fp = fopen(&sBuff[0], "r");						// Open file as read-only
@@ -93,99 +91,101 @@ int main(int argc, char **argv)
 		  {
 			if (memcmp(sBuff, "RELOCATION RECORDS FOR [.text]:", 31) == 0)
 				iSection++;
-			else if (sBuff[0] == '0' &&
-					 sBuff[23] == 'f')				// find source filename
+			else if (sBuff[0] == '0')
 			  {
-				CE.cLang='?';
-				j=48;								// start position in objdump output of full source filename
-				k=0;								// flag to spot file extension
-				for (i=0; i < CE_SOURCE_S0 &&
+				if (sBuff[23] == 'f')				// find source filename
+				  {
+					CE.cLang='?';
+					j=48;							// start position in objdump output of full source filename
+					k=0;							// flag to spot file extension
+					for (i=0; i < CE_SOURCE_S0 &&
 							sBuff[j] != '\n'; i++)	// sBuff will have a line feed before it terminating null
-				  {
-					if (k == 0 && sBuff[j] == '.')
-						k++;
-					else if (k == 1 && sBuff[j] > ' ')
 					  {
-						CE.cLang=toupper(sBuff[j]);	// use 1st digit of file extension to show language used
-						k++;
-					  }
+						if (k == 0 && sBuff[j] == '.')
+							k++;
+						else if (k == 1 && sBuff[j] > ' ')
+						  {
+							CE.cLang=toupper(sBuff[j]);	// use 1st digit of file extension to show language used
+							k++;
+						  }
 
-					CE.sSource[i]=sBuff[j++];
+						CE.sSource[i]=sBuff[j++];
+					  }
+					for ( ; i < CE_SOURCE_S0; i++)
+						CE.sSource[i]='\0';				// null fill remainder of string
+
+					if (CE.cLang == '?')
+						printf("CE: No valid file extension found\n");
 				  }
-				for ( ; i < CE_SOURCE_S0; i++)
-					CE.sSource[i]='\0';				// null fill remainder of string
+				else if (sBuff[23] == 'F')				// find module name(s)
+				  {
+					j=48;
+					if (memcmp(&sBuff[j], "main", 4) == 0)		// replace 'main' modules with the source filename
+						for (i = 0; i < CE_NAME_S0 &&
+									CE.sSource[i] != '\0' &&
+									CE.sSource[i] != '.'; i++)
+							CE.sName[i]=CE.sSource[i];
+					else
+						for (i=0; i < CE_NAME_S0 && sBuff[j] != '\n'; i++)	// sBuff will have a line feed before a terminating null
+							CE.sName[i]=sBuff[j++];
+					for ( ; i < CE_NAME_S0; i++) CE.sName[i]='\0';	// null fill remainder of string
 
-				if (CE.cLang == '?')
-					printf("CE: No valid file extension found\n");
-			  }
-			else if (sBuff[0] == '0' &&
-					 sBuff[23] == 'F')				// find module name(s)
-			  {
-				j=48;
-				if (memcmp(&sBuff[j], "main", 4) == 0)		// replace 'main' modules with the source filename
-					for (i = 0; i < CE_NAME_S0 &&
-								CE.sSource[i] != '\0' &&
-								CE.sSource[i] != '.'; i++)
-						CE.sName[i]=CE.sSource[i];
-				else
-					for (i=0; i < CE_NAME_S0 && sBuff[j] != '\n'; i++)	// sBuff will have a line feed before a terminating null
-						CE.sName[i]=sBuff[j++];
-				for ( ; i < CE_NAME_S0; i++) CE.sName[i]='\0';	// null fill remainder of string
+					i=strtol(&sBuff[31], NULL, 16);					// Extract module size from hex to dec
+					CE.iCDate=gxt_iDate[0];							// Update last compiled date and time
+					CE.iCTime=gxt_iTime[0];
 
-				i=strtol(&sBuff[31], NULL, 16);					// Extract module size from hex to dec
-				CE.iCDate=gxt_iDate[0];							// Update last compiled date and time
-				CE.iCTime=gxt_iTime[0];
+					CE.bmField=CEF_ID_B0+CEF_SIZE_B0;				// Select which fields to read
+					CEL.bmField=0;
+					if (cef_main(FA_READ+FA_KEY1+FA_STEP, 0) == FA_OK_IV0)	// Check if this module exists in clice db?
+					  {												// #TODO add warning if module name found in new source file
+						if (CE.iSize > 0)
+						  {
+							j=((i-CE.iSize)*100)/CE.iSize;			// workout % change in object size
+							if (j > 0)
+								printf("CE: Ooops! %s grown by %d%%\n",
+										CE.sName, j);
+							else if (j < 0)
+								printf("CE: Hurrah! %s shrunk by %d%%\n",
+										CE.sName, 0-j);
+						  }
+						CE.iSize=i;
 
-				CE.bmField=CEF_ID_B0+CEF_SIZE_B0;				// Select which fields to read
-				CEL.bmField=0;
-				if (cef_main(FA_READ+FA_KEY1+FA_STEP, 0) == FA_OK_IV0)	// Check if this module exists in clice db?
-				  {												// #TODO add warning if module name found in new source file
-					if (CE.iSize > 0)
-					  {
-
-						j=((i-CE.iSize)*100)/CE.iSize;			// workout % change in object size
-						if (j > 0)
-							printf("CE: Ooops! %s grown by %d%%\n",
-									CE.sName, j);
-						else if (j < 0)
-							printf("CE: Hurrah! %s shrunk by %d%%\n",
-									CE.sName, 0-j);
-					  }
-					CE.iSize=i;
-
-					i=FA_UPDATE+FA_KEY0;						// Yes so update with current time marker
-					CE.bmField=CEF_SOURCE_B0+CEF_LANG_B0+
+						i=FA_UPDATE+FA_KEY0;						// Yes so update with current time marker
+						CE.bmField=CEF_SOURCE_B0+CEF_LANG_B0+
 								CEF_SIZE_B0+CEF_LAST_COMP_B0;	// update the fields we can
-				  }
-				else
-				  {
-					printf("CE: New program module added - %s\n", CE.sName);
-					CE.iType=CE_PRG_T0;
-					CE.iStatus=0;
-					CE.iSize=i;
-					CE.iMDate=CE.iCDate;
-					CE.iMTime=CE.iCTime;
-					sprintf(CE.sDesc, "Need to scan source for description");
-					ut_check(getcwd(CE.sDir,
+					  }
+					else
+					  {
+						printf("CE: New program module added - %s\n", CE.sName);
+						CE.iType=CE_PRG_T0;
+						CE.iStatus=0;
+						CE.iSize=i;
+						CE.iMDate=CE.iCDate;
+						CE.iMTime=CE.iCTime;
+						sprintf(CE.sDesc, "Need to scan source for description");
+						ut_check(getcwd(CE.sDir,
 								sizeof(CE.sDir)),
 								"getcwd");				// get current working directory
 
-					i=FA_WRITE;							// Insert all columns into db
-					CE.bmField=FA_ALL_COLS_B0;
-				  }
-				ut_check(cef_main(i, 0) == FA_OK_IV0, "update CE");
+						i=FA_WRITE;							// Insert all columns into db
+						CE.bmField=FA_ALL_COLS_B0;
+					  }
+					ut_check(cef_main(i, 0) == FA_OK_IV0, "update CE");
 
-			  }
-			else if (sBuff[0] == '0' && sBuff[23] == ' ' &&
-				memcmp(&sBuff[25], "*UND*", 5) == 0)	// find module name(s)
-			  {
-				j=48;									// start position in objdump output of called module name
-				for (i=0; i < CE_NAME_S0 &&
-							sBuff[j] != '\n'; i++)		// sBuff will have a line feed before it terminating null
-					sModule[iModule][i]=sBuff[j++];
-				for ( ; i < CE_NAME_S0; i++)
-					sModule[iModule][i]='\0';			// null fill remainder of string
-				iModule++;
+				  }
+
+				if (sBuff[23] == 'F' ||						// find functions declared in this file
+					(sBuff[23] == ' ' &&
+					memcmp(&sBuff[25], "*UND*", 5) == 0))	// and those declared externally but referenced
+				  {
+					j=48;									// start position in objdump output of called module name
+					for (i=0; i < CE_NAME_S0 &&
+							sBuff[j] != '\n'; i++)			// sBuff will have a line feed before it terminating null
+						sModule[iModule][i]=sBuff[j++];
+					for ( ; i < CE_NAME_S0; i++)
+						sModule[iModule][i]='\0';			// null fill remainder of string
+					iModule++;
+				  }
 			  }
 		  }
 		else if (iSection == 2)							//  .text relocation records
