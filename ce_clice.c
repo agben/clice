@@ -54,7 +54,7 @@ char *cpMenu[] =	{	"1) Projects",
 						"3) Links to",
 						"4) Links from",
 						"!5) Edit",
-						"!6) Delete",
+						"6) Remove",
 						"!7) Make",
 			(char *) NULL};
 
@@ -69,9 +69,10 @@ int main(int argc, char **argv)
 
 	int option_index = 0;
 	int	i;
-	int	iOpt;								// selected menu option
-	int	iPick;								// selected list option
-	int iPos;								// position within a search list
+	int	ios;					// io status
+	int	iOpt;					// selected menu option
+	int	iPick;					// selected list option
+	int iPos;					// position within a search list
 
 											// The following variables hold a master list [0] and a proposed master list [1]
 											// i.e. We have an established list of modules but may decide to switch that for the proposed list
@@ -335,7 +336,33 @@ int main(int argc, char **argv)
 								  }
 								break;
 
-							case NC_QUIT:			// Quit item display so
+							case 6:					// Remove an item and all it's links from the clice db
+
+								CE.bmField=CEF_ID_B0;
+								CEL.bmField=0;
+								ios=cef_main(FA_DELETE, 0);					// 1st delete main clice db row for this id
+								ut_check(ios == FA_OK_IV0, "Delete main %d", ios);
+
+								CE.bmField=0;
+								CEL.bmField=CEF_LINK_CALLS_B0;
+								memcpy(	CEL.sName,
+											sList[iPos-1][0],
+											CE_NAME_S0);
+								ios=cef_main(FA_DELETE, "cl.name = %");		// 2nd delete all links from this item
+								ut_check(ios == FA_OK_IV0, "Delete links from %d", ios);
+
+								memcpy(	CEL.sCalls, CEL.sName, CE_NAME_S0);
+								ios=cef_main(FA_DELETE, "cl.calls = %");	// 3rd delete all links to this item
+								ut_check(ios == FA_OK_IV0, "Delete links to %d", ios);
+
+								nc_message("Item has been removed from the clice db");
+								sleep(2);
+
+								iOpt=NC_QUIT;				// change action to ensure menus behave
+
+								break;
+
+							case NC_QUIT:					// Quit item display
 								if (iHits[0] > 1)			// if only 1 hit then quit to main menu else
 								  {
 									iPos=nc_menu(	cpTitle+CE_SELECT_TITLE_P0,
