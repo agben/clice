@@ -18,7 +18,8 @@ CREATE TABLE ce_main (
 	ctime	INTEGER,
 	mdate	INTEGER,
 	mtime	INTEGER,
-	desc	CHARACTER(40),
+	desc	CHARACTER(60),
+	code	CHARACTER(60),
 	lang	CHARACTER(1),
 	size	INTEGER);
 

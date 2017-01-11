@@ -31,8 +31,9 @@ void	ce_version(void);			// display version, copyright and licence details
 #define CEF_MDATE_B0	0x00000200	// Last modified date
 #define CEF_MTIME_B0	0x00000400	// Last modified time
 #define CEF_DESC_B0		0x00000800	// Module description
-#define CEF_LANG_B0		0x00001000	// Language code - 'C', 'F'ortran
-#define CEF_SIZE_B0		0x00002000	// Object size
+#define CEF_CODE_B0		0x00001000	// Coding example
+#define CEF_LANG_B0		0x00002000	// Language code - 'C', 'F'ortran
+#define CEF_SIZE_B0		0x00004000	// Object size
 
 					// The following are common combinations of fields - usually read or updated together
 #define CEF_LAST_COMP_B0	(CEF_CDATE_B0 +	CEF_CTIME_B0)
@@ -43,18 +44,13 @@ void	ce_version(void);			// display version, copyright and licence details
 #define	CE_DIR_S0		30
 #define	CE_SOURCE_S0	30
 #define	CE_PROJECT_S0	3
-#define	CE_DESC_S0		40
+#define	CE_DESC_S0		60
 #define	CE_CODE_LINE_S0	60
 
 //------------------------------Identifiers for the type of each CE item and link types to other CE items
 #define CE_PRG_T0	1		//	Program
 #define CE_SYS_T0	2		//	System routine call
 #define CE_LIB_T0	3		//	Library entry
-//#define CE_PAR_T0	4		//	Parameter
-//#define CE_PRF_T0	5		//	Proforma
-//#define CE_CLF_T0	7		//	Called from
-//#define CE_COM_T0	8		//	Common area
-//#define CE_AMD_T0	9		//	Ammendment number
 
 //------------------------------Declare some meaningful field names to map to the unpacked data
 struct CE_FIELDS
@@ -68,11 +64,12 @@ struct CE_FIELDS
 	int		iMDate;			// Last modified date
 	int		iMTime;			// Last modified time
 	int		iSize;			// Object size
-	char	sName[CE_NAME_S0];	// Null terminated module name
-	char	sDir[CE_DIR_S0];	// Null terminated source directory of module
-	char	sSource[CE_SOURCE_S0];	// Null terminated source file of module
+	char	sName[CE_NAME_S0];			// Null terminated module name
+	char	sDir[CE_DIR_S0];			// Null terminated source directory of module
+	char	sSource[CE_SOURCE_S0];		// Null terminated source file of module
 	char	sProject[CE_PROJECT_S0];	// Null terminated project code #TODO could get this from end of sDir instead of using db
-	char	sDesc[CE_DESC_S0];	// Null terminated module description
+	char	sDesc[CE_DESC_S0];			// Null terminated module description
+	char	sCode[CE_CODE_LINE_S0];		// Null terminated source code example
 	char	cLang;			// Language code - 'C', 'F'ortran
   } CE, *spCE;
 

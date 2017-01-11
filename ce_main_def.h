@@ -24,7 +24,7 @@
 
 #define	CE_KEY_M0		5		// Number of keys defined for the SQL generator
 
-#define	CE_FIELD_M0		14		// max number of int + blob fields
+#define	CE_FIELD_M0		15		// max number of int + blob fields
 
 
 struct fa_sql_column CEF[CE_TABLE_M0][CE_FIELD_M0] =	//Declare the columns used in each table
@@ -44,6 +44,7 @@ struct fa_sql_column CEF[CE_TABLE_M0][CE_FIELD_M0] =	//Declare the columns used 
 	{"mdate",	FA_COL_INT_B0,		(char*)&CE.iMDate,		FA_FIELD_INT_S0},
 	{"mtime",	FA_COL_INT_B0,		(char*)&CE.iMTime,		FA_FIELD_INT_S0},
 	{"desc",	FA_COL_BLOB_B0,		(char*)&CE.sDesc,		CE_DESC_S0},
+	{"code",	FA_COL_BLOB_B0,		(char*)&CE.sCode,		CE_CODE_LINE_S0},
 	{"lang",	FA_COL_CHAR_B0,		(char*)&CE.cLang,		FA_FIELD_CHAR_S0},
 	{"size",	FA_COL_INT_B0,		(char*)&CE.iSize,		FA_FIELD_INT_S0}
 	},
