@@ -345,15 +345,10 @@ int main(int argc, char **argv)
 
 								CE.bmField=0;
 								CEL.bmField=CEF_LINK_CALLS_B0;
-								memcpy(	CEL.sName,
-											sList[iPos-1][0],
-											CE_NAME_S0);
-								ios=cef_main(FA_DELETE, "cl.name = %");		// 2nd delete all links from this item
-								ut_check(ios == FA_OK_IV0, "Delete links from %d", ios);
-
-								memcpy(	CEL.sCalls, CEL.sName, CE_NAME_S0);
-								ios=cef_main(FA_DELETE, "cl.calls = %");	// 3rd delete all links to this item
-								ut_check(ios == FA_OK_IV0, "Delete links to %d", ios);
+								memcpy(CEL.sName,sList[iPos-1][0],CE_NAME_S0);
+								memcpy(CEL.sCalls, CEL.sName, CE_NAME_S0);
+								ios=cef_main(FA_DELETE, "cl.name = % OR cl.calls = %");		// 2nd delete all links to+from this item
+								ut_check(ios == FA_OK_IV0, "Delete links %d", ios);
 
 								nc_message("Item has been removed from the clice db");
 								sleep(2);
