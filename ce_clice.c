@@ -180,7 +180,8 @@ int main(int argc, char **argv)
 					while (iOpt != NC_QUIT)
 					  {
 						CE.iNo=iList[iPos-1][0];			// Read more about the selected item
-						CE.bmField=CEF_DESC_B0+CEF_LANG_B0;	// What to read from the ce database
+						CE.bmField=CEF_DESC_B0+CEF_LANG_B0+
+									CEF_CODE_B0;			// What to read from the ce database
 						CEL.bmField=0;
 						ut_check(	cef_main(FA_READ+FA_STEP, 0) == FA_OK_IV0,		// prepare a select for selected item
 									"Read key0");							// jump to error: if SQL prepare fails.
@@ -204,10 +205,10 @@ int main(int argc, char **argv)
 								sDisp[2]);
 
 						cpDisp[2]=sDisp[2];
-						sprintf(sDisp[2],"%s",CE.sDesc);
+						sprintf(sDisp[2],"%s", CE.sDesc);
 
 						cpDisp[3]=sDisp[3];
-						sprintf(sDisp[3]," ");
+						sprintf(sDisp[3],"%s", CE.sCode);
 
 						cpDisp[4]=sDisp[4];
 						cpDisp[4]=(char *) NULL;		// mark end of display

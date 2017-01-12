@@ -139,10 +139,8 @@ int main(int argc, char **argv)
 	i=cp-CE.sSource;							// size of program name minus file extension
 	if (i > CE_NAME_S0) i=CE_NAME_S0;			// #TODO warn about truncated filename
 	sprintf(sBuff, "%.*s.ce", i, CE.sSource);
-//	sprintf(CE.sName, "%.*s", i, CE.sSource);
 
 	CE.cLang=toupper(CE.sSource[i+1]);			// #TODO - validate
-
 	CE.iStatus=0;
 	CE.iCDate=CE.iMDate;
 	CE.iCTime=CE.iMTime;
@@ -161,15 +159,26 @@ int main(int argc, char **argv)
 		if (memcmp(&sBuff[i], "function", 8) == 0)			// is the item a function definition?
 		  {
 			if (memcmp(sBuff, "main", 4) == 0)				// replace 'main' modules with the source filename
-				for (i = 0; i < CE_NAME_S0 &&
-						CE.sSource[i] != '\0' &&
-						CE.sSource[i] != '.'; i++)
-					CE.sName[i]=CE.sSource[i];
+				for (j = 0; j < CE_NAME_S0 &&
+						CE.sSource[j] != '\0' &&
+						CE.sSource[j] != '.'; j++)
+					CE.sName[j]=CE.sSource[j];				// #TODO warn and ignore names that are too long
 			else
-				for (i=0; i < CE_NAME_S0 &&
-									sBuff[i] != ' '; i++)	// otherwise copy the item name
-					CE.sName[i]=sBuff[i];
-			for ( ; i < CE_NAME_S0; i++) CE.sName[i]='\0';  // null fill remainder of string
+				for (j=0; j < (CE_NAME_S0-1) &&
+									sBuff[j] != ' '; j++)	// otherwise copy the item name
+					CE.sName[j]=sBuff[j];
+			for ( ; j < CE_NAME_S0; j++) CE.sName[j]='\0';  // null fill remainder of string
+
+			i+=8;											// skip function
+			for (; i < BUFF_S0 && sBuff[i] == ' '; i++);	// skip past following spaces
+			for (; i < BUFF_S0 && sBuff[i] != ' '; i++);	// skip past line number
+			for (; i < BUFF_S0 && sBuff[i] == ' '; i++);	// skip past following spaces
+			for (; i < BUFF_S0 && sBuff[i] != ' '; i++);	// skip past source file name
+			for (; i < BUFF_S0 && sBuff[i] == ' '; i++);	// skip past following spaces
+			for (j=0; j < (CE_CODE_LINE_S0-1) &&
+									sBuff[i] != '\n'; j++)	// Extract function definition
+				CE.sCode[j]=sBuff[i++];
+			for (; j < CE_CODE_LINE_S0; j++) CE.sCode[j]='\0';  // null fill remainder of string
 
 			ce_scan_c_update();								// update clice db
 		  }
