@@ -11,7 +11,7 @@
 
 #include <fa_sql_def.h>			// common SQL definitions and parameters
 
-//------------------------------clice utility functions
+//------------------------------clice utility function prototypes
 int		cef_main(int, char*);		// CE database handler
 void	ce_help(void);				// display basic ce help
 int		ce_menu(char **, char **);	// menu management for ce_ctrl
@@ -48,9 +48,8 @@ void	ce_version(void);			// display version, copyright and licence details
 #define	CE_CODE_LINE_S0	60
 
 //------------------------------Identifiers for the type of each CE item and link types to other CE items
-#define CE_PRG_T0	1		//	Program
-#define CE_SYS_T0	2		//	System routine call
-#define CE_LIB_T0	3		//	Library entry
+#define	CE_PROG_T0	1		// Programs and functions
+#define CE_HEAD_T0	2		// Header/library files
 
 //------------------------------Declare some meaningful field names to map to the unpacked data
 struct CE_FIELDS
@@ -80,9 +79,10 @@ struct CE_FIELDS
 #define CEF_LINK_ID_B0		0x00000001	// Unique primary key number - allocated by SQL
 #define CEF_LINK_NAME_B0	0x00000002	// This CE item/module/record name
 #define CEF_LINK_CALLS_B0	0x00000004	// Item/module/record that it is linked to
-#define CEF_LINK_REL_B0		0x00000008	// Relationship of that link- i.e. call to program or inclusion of library
-#define CEF_LINK_CODE_B0	0x00000010	// Source code line where relationship link is made
-#define CEF_LINK_TIME_B0	0x00000020	// Time stamp for updating links
+#define CEF_LINK_NTYPE_B0	0x00000008	// Type of item that Name refers to
+#define CEF_LINK_CTYPE_B0	0x00000010	// Type of item that Calls refers to
+#define CEF_LINK_CODE_B0	0x00000020	// Source code line where relationship link is made
+#define CEF_LINK_TIME_B0	0x00000040	// Time stamp for updating links
 
 struct CEL_FIELDS
   {
@@ -92,15 +92,8 @@ struct CEL_FIELDS
 	char	sName[CE_NAME_S0];		// Null terminated module name
 	char	sCalls[CE_NAME_S0];		// Null terminated name of called module
 	char	sCode[CE_CODE_LINE_S0];	// Null terminated snippet of source code
-	char	cRel;					// Type of relationship to cCalls
+	int		iNtype;					// sName's item type (program, header, etc...)
+	int		iCtype;					// sCalls' item type
   } CEL, *spCEL;
-
-//------------------------------Object symbols identified by the nm routine
-#define CEL_REL_UNDAT_V0	'C'	// Uninitialised data
-#define CEL_REL_UNDEF_V0	'U'	// Undefined symbol - usually indicating a local or system routine
-#define CEL_REL_GDATA_V0	'D'	// Initialised data - global
-#define CEL_REL_LDATA_V0	'd'	// Initialised data - local
-#define CEL_REL_GTEXT_V0	'T'	// Text symbol - global
-#define CEL_REL_UNDEF_V0	'U'	// Undefined symbol - usually indicating a local or system routine
 
 #endif

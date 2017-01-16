@@ -157,7 +157,7 @@ int main(int argc, char **argv)
 					else
 					  {
 						printf("CE: New program module added - %s\n", CE.sName);
-						CE.iType=CE_PRG_T0;
+						CE.iType=CE_PROG_T0;
 						CE.iStatus=0;
 						CE.iSize=i;
 						CE.iMDate=CE.iCDate;
@@ -210,25 +210,12 @@ int main(int argc, char **argv)
 						i++);
 				if (i < iModule)						// matched a function call with one listed in the symbols table
 				  {
-					CE.bmField=0;						// Select which fields to read
-					CEL.bmField=CEF_LINK_ID_B0;			// Just get the ID to confirm if row already exists
-					if (cef_main(FA_READ+FA_STEP,
-						"cl.name = % AND cl.calls = %") == FA_OK_IV0)	// Link between these modules already exists?
-					  {
-						i=FA_UPDATE+FA_KEY2;			// Yes so update with current time marker
-						CEL.bmField=CEF_LINK_TIME_B0;	// Only need to update the time stamp
-					  }
-					else
-					  {
-						printf("CE: %s now using %s\n",
-								CEL.sName, CEL.sCalls);	// No? a new link has been established
-						sprintf(CEL.sCode, "no code extract");
-						CEL.cRel=CEL_REL_UNDEF_V0;
-						i=FA_WRITE;						// Insert into db
-						CEL.bmField=FA_ALL_COLS_B0;
-					  }
+					sprintf(CEL.sCode, "no code extract");
+					CEL.iNtype=CE_PROG_T0;				// program to program link
+					CEL.iCtype=CE_PROG_T0;
 					CEL.iTime=gxt_iTime[0];				// Mark with current time
-					ut_check(cef_main(i, 0) == FA_OK_IV0, "update CEL");
+
+					ut_check(cef_main(FA_LINK, 0) == FA_OK_IV0, "update CEL");
 				  }
 			  }
 			else if (sBuff[0] > 'A' && sBuff[0] < 'z')	// module name found
@@ -246,26 +233,10 @@ int main(int argc, char **argv)
 	  }
 
 	CEL.iTime=gxt_iTime[0];					// Check for unused (not time stamped) links
-	CE.bmField=0;							// Select which fields to read
-	CEL.bmField=CEF_LINK_CALLS_B0;
-	ut_check(cef_main(FA_READ, "cl.name = % AND cl.time <> %") == FA_OK_IV0,
-			"read CEL");
-	i=0;
-	while (cef_main(FA_STEP,0) == FA_OK_IV0)
-	  {
-		printf("CE: no longer using %s\n", CEL.sCalls);
-		i=1;
-	  }
-
-	if (i == 1)
-	  {
-		CEL.iTime=gxt_iTime[0];				// Purge all remaining unused (not time stamped) links
-		CE.bmField=0;						// Select which table to delete from
-		CEL.bmField=FA_ALL_COLS_B0;
-		ut_check(cef_main(	FA_DELETE,
-							"cl.name = % AND cl.time <> %") == FA_OK_IV0,
-			"delete CEL");						// jumps to error: if not ok
-	  }
+	CEL.iNtype=CE_PROG_T0;
+	CEL.iCtype=CE_PROG_T0;
+	ut_check(cef_main(FA_PURGE, 0) == FA_OK_IV0,
+			"purge CEL");
 
 error:
 	if (fp != NULL) fclose(fp);

@@ -8,8 +8,8 @@
 //
 //--------------------------------------------------------------
 
-#include <ctype.h>		// common I/O functions like toupper()
 #include <getopt.h>		// for getopt_long - argument parsing
+#include <ctype.h>		// common I/O functions like toupper()
 #include <stdlib.h>		// memory management
 #include <string.h>		// for memcpy
 
@@ -32,19 +32,20 @@ char *cpTitle[] =	{	"clice Menu",
 			(char *) NULL,
 						"Enter program name",
 			(char *) NULL,
-						"Enter system routine name",
+						"Enter header name",
 			(char *) NULL,
-						"Enter library name",
+						"Enter system routine name",
 			(char *) NULL,
 						"Select required entry",
 			(char *) NULL};
 
-#define CE_PROJECTS_MENU_P0	5		// offsets for each list of menu options
-#define CE_ACTIONS_MENU_P0	8
-char *cpMenu[] =	{	"1) Projects",
-						"2) Programs",
-						"!3) System Routines",
-						"4) Libraries",
+#define CE_PROJECTS_MENU_P0	6		// offsets for each list of menu options
+#define CE_ACTIONS_MENU_P0	9
+char *cpMenu[] =	{	"1) My Projects",
+						"2) My Programs",
+						"3) My Header files",
+						"!4) System Functions",
+						"!5) System Headers",
 			(char *) NULL,
 						"!1) Make all",
 						"!2) Make install",
@@ -68,19 +69,20 @@ int main(int argc, char **argv)
 	};
 
 	int option_index = 0;
-	int	i;
+	int	i, j;
+	char *cp;
 	int	ios;					// io status
 	int	iOpt;					// selected menu option
 	int	iPick;					// selected list option
 	int iPos;					// position within a search list
 
-											// The following variables hold a master list [0] and a proposed master list [1]
-											// i.e. We have an established list of modules but may decide to switch that for the proposed list
-	int iHits[2];							// number of hits found by each search
+								// The following variables hold a master list [0] and a proposed master list [1]
+								// i.e. We have an established list of modules but may decide to switch that for the proposed list
+	int iHits[2];				// number of hits found by each search
 
 //#TODO	should use malloc for these?
-    char iList[CE_LIST_M0][2];					// list of selected clice db items
-    char sList[CE_LIST_M0][2][CE_NAME_S0+10];	// list of their names
+    int iList[CE_LIST_M0][2];					// list of selected clice db items
+    char sList[CE_LIST_M0][2][CE_NAME_S0+20];	// list of their names
     char *cpList[CE_LIST_M0];
 
     char sDisp[CE_DISP_M0][CE_DESC_S0+10];	// bespoke menu/list for display
@@ -135,10 +137,9 @@ int main(int argc, char **argv)
 				break;
 			case 2:
 			case 3:
-			case 4:
 				nc_message("Use % for wildcard");
 //#TODO Shouldn't tie menu options to the item types held in slice
-				CE.iType=iOpt-1;					// set type of record required (program, library, ...)
+				CE.iType=(iOpt == 2) ? CE_PROG_T0 : CE_HEAD_T0;	// set type of item required (program, header, ...)
 				i=nc_input(	cpTitle+(CE_PROG_TITLE_P0+((iOpt-2)*2)),
 							CE.sName,
 							CE_NAME_S0-1);			// set name to look for in clice db
@@ -150,7 +151,7 @@ int main(int argc, char **argv)
 				iHits[0]=0;
 				while (cef_main(FA_STEP, 0) == FA_OK_IV0)
 				  {
-					cpList[iHits[0]]=sList[iHits[0]][0];		// establish an array of pointers for nc_menu - #TODO must be a better way?
+					cpList[iHits[0]]=sList[iHits[0]][0];	// establish an array of pointers for nc_menu - #TODO must be a better way?
 					iList[iHits[0]][0]=CE.iNo;
 					sprintf(sList[iHits[0]++][0],"%s",CE.sName);	// pointers to the name of each matching record
 
@@ -181,7 +182,7 @@ int main(int argc, char **argv)
 					  {
 						CE.iNo=iList[iPos-1][0];			// Read more about the selected item
 						CE.bmField=CEF_DESC_B0+CEF_LANG_B0+
-									CEF_CODE_B0;			// What to read from the ce database
+									CEF_CODE_B0+CEF_TYPE_B0;	// What to read from the ce database
 						CEL.bmField=0;
 						ut_check(	cef_main(FA_READ+FA_STEP, 0) == FA_OK_IV0,		// prepare a select for selected item
 									"Read key0");							// jump to error: if SQL prepare fails.
@@ -191,26 +192,35 @@ int main(int argc, char **argv)
 						cpDisp[0]=sDisp[0];					// establish an array of pointers for nc_menu
 						sprintf(sDisp[0]," ");
 
-						if (CE.cLang == 'C')
-							sprintf(sDisp[2],"C program");
-						else if (CE.cLang == 'H')
-							sprintf(sDisp[2],"C library");
-						else if (CE.cLang == 'S')
-							sprintf(sDisp[2],"Shell script");
-						else
-							sprintf(sDisp[2],"%c",CE.cLang);
+						switch (CE.cLang)					// display item type
+						  {
+							case 'C':
+							case 'H':
+								sDisp[2][0] = 'C';
+								if (CE.iType == CE_PROG_T0)
+									sprintf(&sDisp[2][1]," program");
+								else if (CE.iType == CE_HEAD_T0)
+									sprintf(&sDisp[2][1]," header");
+								else
+									sprintf(&sDisp[2][1]," unknown");
+								break;
+							case 'S':
+								sprintf(sDisp[2],"Shell script");
+								break;
+							default:
+								sprintf(sDisp[2],"%c",CE.cLang);
+						  }
 						cpDisp[1]=sDisp[1];
-						sprintf(sDisp[1],"Name=%s    (%s)",
+						snprintf(sDisp[1], sizeof(sDisp[0]), "Name=%s    (%s)",
 								sList[iPos-1][0],
 								sDisp[2]);
 
 						cpDisp[2]=sDisp[2];
-						sprintf(sDisp[2],"%s", CE.sDesc);
+						snprintf(sDisp[2], sizeof(sDisp[0]), "%s", CE.sDesc);
 
 						cpDisp[3]=sDisp[3];
-						sprintf(sDisp[3],"%s", CE.sCode);
+						snprintf(sDisp[3], sizeof(sDisp[0]), "%s", CE.sCode);
 
-						cpDisp[4]=sDisp[4];
 						cpDisp[4]=(char *) NULL;		// mark end of display
 
 						iOpt=nc_menu(	cpDisp,
@@ -229,42 +239,50 @@ int main(int argc, char **argv)
 							case 3:					// Calls to
 							case 4:					// Called from
 								CE.bmField=0;		// need link details not module details
-								CEL.cRel=CEL_REL_UNDEF_V0;			// both calls to & from are classed as undefined
 								if (iOpt == 3)
 								  {
-									CEL.bmField=CEF_LINK_CALLS_B0;		// read list of called subroutine/functions
+									CEL.iNtype=CE.iType;	// type of current item
 									memcpy(	CEL.sName,
 											sList[iPos-1][0],
 											CE_NAME_S0);
-									ut_check(
-										cef_main(FA_READ+FA_KEY4,
-													0) == FA_OK_IV0,	// prepare a select of all modules called by CEL.sName
-										"Read key4");					// jump to error: if SQL prepare fails.
+									CEL.bmField=CEF_LINK_CALLS_B0+CEF_LINK_CTYPE_B0;	// read list of items linked from this one
+									ut_check(cef_main(FA_READ,
+										"cl.name = % AND cl.ntype = % ORDER BY cl.calls ASC") == FA_OK_IV0,	// prepare a select of all modules linked
+										"Read links to");									// to or jump to error: if fails.
 								  }
 								else
 								  {
-									CEL.bmField=CEF_LINK_NAME_B0;		// read list of calling program/subroutine/functions
+									CEL.iCtype=CE.iType;	// type of current item
 									memcpy(	CEL.sCalls,
 											sList[iPos-1][0],
 											CE_NAME_S0);
-									ut_check(
-										cef_main(FA_READ+FA_KEY6,
-													0) == FA_OK_IV0,	// prepare a select of all modules that call CEL.sCalls
-										"Read key6");					// jump to error: if SQL prepare fails.
+									CEL.bmField=CEF_LINK_NAME_B0+CEF_LINK_NTYPE_B0;		// read list of items that link to this one
+									ut_check(cef_main(FA_READ,
+										"cl.calls = % AND cl.ctype = % ORDER BY cl.name ASC") == FA_OK_IV0,	// prepare a select of all modules linked
+										"Read links from");									// from or jump to error: if fails.
 								  }
 
 								iHits[1]=0;
 								while (cef_main(FA_STEP, 0) == FA_OK_IV0)
 								  {
 									cpList[iHits[1]]=sList[iHits[1]][1];	// establish an array of pointers for nc_menu - #TODO must be a better way?
-									if (iOpt == 3)						// called modules
-										memcpy(	sList[iHits[1]][1],
-												CEL.sCalls,
-												CE_NAME_S0);
-									else								// calling modules
-										memcpy(	sList[iHits[1]][1],
-												CEL.sName,
-												CE_NAME_S0);
+									if (iOpt == 3)							// called modules
+									  {
+										cp=CEL.sCalls;
+										i=CEL.iCtype;
+									  }
+									else									// calling modules
+									  {
+										cp=CEL.sName;
+										i=CEL.iNtype;
+									  }
+
+									sprintf(sList[iHits[1]][1], " %-*s   %s",
+											CE_NAME_S0,
+											cp,
+											(i == CE_PROG_T0) ?	"function":
+											(i == CE_HEAD_T0) ?	"header":
+																"unknown");
 									iList[iHits[1]++][1]=0;		// Will determine if each called item exists in clice later
 									if (iHits[1] == CE_LIST_M0)		//#TODO need to handle large lists better - this will keep pausing
 									  {
@@ -278,10 +296,10 @@ int main(int argc, char **argv)
 								if (iHits[1] == 0)						// no matches in clice database
 								  {
 									if (iOpt == 3)
-										nc_message("No called routines found in clice");
+										nc_message("No linked items found in clice");
 									else
-										nc_message("Not called from anything in clice");
-									sleep(2);						// iList[][0], sList[][0], iPos and iHits[0] are preserved so just continue.
+										nc_message("Not linked from anything in clice");
+									sleep(2);			// iList[][0], sList[][0], iPos and iHits[0] are preserved so just continue.
 								  }
 								else
 								  {
@@ -289,9 +307,10 @@ int main(int argc, char **argv)
 
 									for (i=0; i < iHits[1]; i++)
 									  {
-										memcpy(	CE.sName,
-												sList[i][1],
-												CE_NAME_S0);
+										for(j=0; sList[i][1][j+1] > ' '; j++)
+											CE.sName[j]=sList[i][1][j+1];
+										CE.sName[j]='\0';			// extract item name and null terminate
+
 										CE.bmField=CEF_ID_B0;		// See which called modules exist in clice
 										CEL.bmField=0;
 										ut_check(cef_main(FA_READ+FA_KEY1,
@@ -301,7 +320,7 @@ int main(int argc, char **argv)
 										if (cef_main(FA_STEP,0) == FA_OK_IV0)
 											iList[i][1]=CE.iNo;
 										else
-											sprintf(sList[i][1],"!%s",CE.sName);	// Mark module as unknown in clice with a leading hash
+											sList[i][1][0]='!';		// Mark module as unknown in clice
 									  }
 
 									iPick=nc_menu(	cpTitle+CE_SELECT_TITLE_P0,

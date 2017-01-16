@@ -29,6 +29,7 @@ CREATE TABLE ce_link (
 	id		INTEGER PRIMARY KEY NOT NULL,
 	name	CHARACTER(30),
 	calls	CHARACTER(30),
-	rel		CHARACTER(1),
+	ntype	INTEGER,
+	ctype	INTEGER,
 	code	CHARACTER(60),
 	time	INTEGER );

@@ -54,7 +54,8 @@ struct fa_sql_column CEF[CE_TABLE_M0][CE_FIELD_M0] =	//Declare the columns used 
 				FA_COL_AUTO_B0),	(char*)&CEL.iNo,		FA_FIELD_INT_S0},
 	{"name",	FA_COL_BLOB_B0,		(char*)&CEL.sName,		CE_NAME_S0},
 	{"calls",	FA_COL_BLOB_B0,		(char*)&CEL.sCalls,		CE_NAME_S0},
-	{"rel",		FA_COL_CHAR_B0,		(char*)&CEL.cRel,		FA_FIELD_CHAR_S0},
+	{"ntype",	FA_COL_INT_B0,		(char*)&CEL.iNtype,		FA_FIELD_INT_S0},
+	{"ctype",	FA_COL_INT_B0,		(char*)&CEL.iCtype,		FA_FIELD_INT_S0},
 	{"code",	FA_COL_BLOB_B0,		(char*)&CEL.sCode,		CE_CODE_LINE_S0},
 	{"time",	FA_COL_INT_B0,		(char*)&CEL.iTime,		FA_FIELD_INT_S0},
 	}
@@ -63,7 +64,7 @@ struct fa_sql_column CEF[CE_TABLE_M0][CE_FIELD_M0] =	//Declare the columns used 
 struct fa_sql_table CET[CE_TABLE_M0] =		//Declare the tables used in ce_main.db
   {// name		alias	Column count	Fields	pointer to column details
 	{"ce_main",	"ce",	CE_FIELD_M0,	0,		&CEF[0][0],},
-	{"ce_link",	"cl",	6,				0,		&CEF[1][0]}
+	{"ce_link",	"cl",	7,				0,		&CEF[1][0]}
   };
 
 struct fa_sql_db CEB =				//Declare database details for clice_main.db
@@ -74,8 +75,11 @@ struct fa_sql_db CEB =				//Declare database details for clice_main.db
 		 "ce.name = %",				// 1
 		 "cl.id = %",				// 2
 		 "cl.name = % AND cl.time <> %",	// 3
-		 "cl.name = % AND cl.rel = % ORDER BY cl.calls ASC",	// 4	select all links of type 'cl.rel' from module 'cl.name'
+		 " ",						// 4	select all links of type 'cl.rel' from module 'cl.name'
 		 "ce.name LIKE % AND ce.type = % ORDER BY ce.name ASC",	// 5	select all matching modules of specified type (program. library, etc...)
-		 "cl.calls = % AND cl.rel = % ORDER BY cl.name ASC"}	// 6	select all links of type 'cl.rel' to module 'cl.calls'
+		 " "}						// 6	select all links of type 'cl.rel' to module 'cl.calls'
   };
 #endif
+
+//		 "cl.name = % AND cl.rel = % ORDER BY cl.calls ASC",	// 4	select all links of type 'cl.rel' from module 'cl.name'
+//		 "cl.calls = % AND cl.rel = % ORDER BY cl.name ASC"}	// 6	select all links of type 'cl.rel' to module 'cl.calls'

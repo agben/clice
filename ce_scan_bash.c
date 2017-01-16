@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 	if (cef_main(FA_READ+FA_KEY1+FA_STEP, 0) == FA_NODATA_IV0)	// module not found so create a new CE module
 	 {
 		printf("CE: New shell script module added - %s\n", CE.sName);
-		CE.iType=CE_PRG_T0;
+		CE.iType=CE_PROG_T0;
 
 		CE.iStatus=0;
 		CE.iCDate=CE.iMDate;
