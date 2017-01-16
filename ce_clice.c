@@ -8,8 +8,8 @@
 //
 //--------------------------------------------------------------
 
-#include <getopt.h>		// for getopt_long - argument parsing
 #include <ctype.h>		// common I/O functions like toupper()
+#include <getopt.h>		// for getopt_long - argument parsing
 #include <stdlib.h>		// memory management
 #include <string.h>		// for memcpy
 
@@ -211,7 +211,8 @@ int main(int argc, char **argv)
 								sprintf(sDisp[2],"%c",CE.cLang);
 						  }
 						cpDisp[1]=sDisp[1];
-						snprintf(sDisp[1], sizeof(sDisp[0]), "Name=%s    (%s)",
+						snprintf(sDisp[1], sizeof(sDisp[0]), "Name=%-*.*s    (%s)",
+								CE_NAME_S0, CE_NAME_S0,
 								sList[iPos-1][0],
 								sDisp[2]);
 
@@ -219,9 +220,12 @@ int main(int argc, char **argv)
 						snprintf(sDisp[2], sizeof(sDisp[0]), "%s", CE.sDesc);
 
 						cpDisp[3]=sDisp[3];
-						snprintf(sDisp[3], sizeof(sDisp[0]), "%s", CE.sCode);
+						if (CE.cLang == 'H')
+							sDisp[3][0]='\0';		// no example code to display for header files
+						else
+							snprintf(sDisp[3], sizeof(sDisp[0]), "%s", CE.sCode);
 
-						cpDisp[4]=(char *) NULL;		// mark end of display
+						cpDisp[4]=(char *) NULL;	// mark end of display
 
 						iOpt=nc_menu(	cpDisp,
 										cpMenu+CE_ACTIONS_MENU_P0);
@@ -242,9 +246,9 @@ int main(int argc, char **argv)
 								if (iOpt == 3)
 								  {
 									CEL.iNtype=CE.iType;	// type of current item
-									memcpy(	CEL.sName,
-											sList[iPos-1][0],
-											CE_NAME_S0);
+									for (i=0; sList[iPos-1][0][i] > ' '; i++)
+										CEL.sName[i]=sList[iPos-1][0][i];
+									CEL.sName[i]='\0';
 									CEL.bmField=CEF_LINK_CALLS_B0+CEF_LINK_CTYPE_B0;	// read list of items linked from this one
 									ut_check(cef_main(FA_READ,
 										"cl.name = % AND cl.ntype = % ORDER BY cl.calls ASC") == FA_OK_IV0,	// prepare a select of all modules linked
@@ -253,9 +257,9 @@ int main(int argc, char **argv)
 								else
 								  {
 									CEL.iCtype=CE.iType;	// type of current item
-									memcpy(	CEL.sCalls,
-											sList[iPos-1][0],
-											CE_NAME_S0);
+									for (i=0; sList[iPos-1][0][i] > ' '; i++)
+										CEL.sCalls[i]=sList[iPos-1][0][i];
+									CEL.sCalls[i]='\0';
 									CEL.bmField=CEF_LINK_NAME_B0+CEF_LINK_NTYPE_B0;		// read list of items that link to this one
 									ut_check(cef_main(FA_READ,
 										"cl.calls = % AND cl.ctype = % ORDER BY cl.name ASC") == FA_OK_IV0,	// prepare a select of all modules linked
@@ -277,7 +281,7 @@ int main(int argc, char **argv)
 										i=CEL.iNtype;
 									  }
 
-									sprintf(sList[iHits[1]][1], " %-*s   %s",
+									sprintf(sList[iHits[1]][1], "%-*s   %s",
 											CE_NAME_S0,
 											cp,
 											(i == CE_PROG_T0) ?	"function":
@@ -307,8 +311,8 @@ int main(int argc, char **argv)
 
 									for (i=0; i < iHits[1]; i++)
 									  {
-										for(j=0; sList[i][1][j+1] > ' '; j++)
-											CE.sName[j]=sList[i][1][j+1];
+										for(j=0; sList[i][1][j] > ' '; j++)
+											CE.sName[j]=sList[i][1][j];
 										CE.sName[j]='\0';			// extract item name and null terminate
 
 										CE.bmField=CEF_ID_B0;		// See which called modules exist in clice
@@ -319,8 +323,13 @@ int main(int argc, char **argv)
 
 										if (cef_main(FA_STEP,0) == FA_OK_IV0)
 											iList[i][1]=CE.iNo;
-										else
-											sList[i][1][0]='!';		// Mark module as unknown in clice
+										else						// Mark module as unknown in clice by inserting a ! marker
+										  {
+											sList[i][1][sizeof(sList[0][0])-1]='\0';	// ensure null termination of string
+											for(j=sizeof(sList[0][0])-2; j > 0; j--)
+												sList[i][1][j]=sList[i][1][j-1];
+											sList[i][1][0]='!';
+										  }
 									  }
 
 									iPick=nc_menu(	cpTitle+CE_SELECT_TITLE_P0,
@@ -335,13 +344,11 @@ int main(int argc, char **argv)
 												iList[iHits[0]][0]=iList[i][1];
 												memcpy(	sList[iHits[0]][0],
 														sList[i][1],
-														CE_NAME_S0);
+														sizeof(sList[0][0]));
 												iHits[0]++;
 												if (i == iPick-1) iPos=iHits[0];	// position of selected item within the new (clice db entries only) list
 											  }
 										  }
-
-
 
 //										iPos=i;
 //										iHits[0]=iHits[1];
