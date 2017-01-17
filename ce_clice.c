@@ -22,13 +22,10 @@
 #define CE_DISP_M0	5				// Lines in an item display
 #define CE_LIST_M0	50				// Max search results to display
 
-#define CE_PROJECTS_TITLE_P0	2	// offsets for each menu title
-#define CE_PROG_TITLE_P0	4
-#define CE_SELECT_TITLE_P0	10
+#define CE_PROG_TITLE_P0	2
+#define CE_SELECT_TITLE_P0	8
 
 char *cpTitle[] =	{	"clice Menu",
-			(char *) NULL,
-						"Enter project name",
 			(char *) NULL,
 						"Enter program name",
 			(char *) NULL,
@@ -40,15 +37,16 @@ char *cpTitle[] =	{	"clice Menu",
 			(char *) NULL};
 
 #define CE_PROJECTS_MENU_P0	6		// offsets for each list of menu options
-#define CE_ACTIONS_MENU_P0	9
+#define CE_ACTIONS_MENU_P0	10
 char *cpMenu[] =	{	"1) My Projects",
 						"2) My Programs",
 						"3) My Header files",
 						"!4) System Functions",
 						"!5) System Headers",
 			(char *) NULL,
-						"!1) Make all",
-						"!2) Make install",
+						"!1) Update project description",
+						"!2) Make all",
+						"!3) Make install",
 			(char *) NULL,
 						"1) Next",
 						"2) Previous",
@@ -112,26 +110,73 @@ int main(int argc, char **argv)
 		  }
 	  }
 
-	ut_check(cef_main(FA_INIT+FA_OPEN, 0) == 0,	// initialise libgxtfa and open clice database
+	ut_check(cef_main(FA_INIT+FA_OPEN, 0) == 0,				// initialise libgxtfa and open clice database
 			"Open ce_main.db");
-	nc_start();									// initialise libgxtnc and startup ncurses screen display
+	nc_start();												// initialise libgxtnc and startup ncurses screen display
 
-	while ((iOpt=nc_menu(cpTitle,cpMenu)) != NC_QUIT)	// Display and manage menu until requested to quit
+	while ((iOpt=nc_menu(cpTitle,cpMenu)) != NC_QUIT)		// Display and manage menu until requested to quit
 	  {
-		switch (iOpt)						// then check for menu selection actions
+		switch (iOpt)										// then check for menu selection actions
 		  {
 			case 1:
-				while ((iOpt=nc_menu(	cpTitle+CE_PROJECTS_TITLE_P0,
-										cpMenu+CE_PROJECTS_MENU_P0)) != NC_QUIT)	// display and manage menu until requested to quit
+				CE.bmField=CEF_PROJECT_B0;					// Get a list of project names from the clice db
+				CEL.bmField=0;
+				CE.sProject[0]='\0';						// #TODO have to provide a key for a mandatory WHERE ... , but why?
+				ut_check(cef_main(FA_READ+FA_DISTINCT,
+							"ce.project > %") == FA_OK_IV0,
+								"Read projects");			// jump to error: if SQL prepare fails.
+				iHits[0]=0;
+				while (cef_main(FA_STEP, 0) == FA_OK_IV0)
 				  {
-					switch (iOpt)			// then check for menu selection actions
+					cpList[iHits[0]]=sList[iHits[0]][0];	// establish an array of pointers for nc_menu
+					sprintf(sList[iHits[0]][0],"%s",CE.sProject);	// pointers to the code name of project
+					iHits[0]++;
+					if (iHits[0] == CE_LIST_M0)
 					  {
-						case '2':
-//							ce_make_all();
-							break;
-						case '3':
-//							ce_make_install();
-							break;
+						iHits[0]--;
+						nc_message("Too many projects - showing first page only");
+						sleep(2);
+						break;
+					  }
+				  }
+
+				if (iHits[0] == 0)							// no projects found in clice db
+				  {
+					nc_message("No projects found");
+					sleep(2);
+				  }
+				else
+				  {
+					cpList[iHits[0]]=(char *) NULL;			// mark end of projects list
+
+					iPos=(iHits[0] == 1) ? 1 :
+						nc_menu(cpTitle+CE_SELECT_TITLE_P0,
+								cpList);					// display project list until selection or quit requested
+//					if (iPos == NC_QUIT) iOpt=NC_QUIT;		// Pass on a quit request from the search results list
+
+					if (iPos != NC_QUIT)
+					  {
+
+						cpDisp[0]=sDisp[0];					// Display project details
+						snprintf(sDisp[0], sizeof(sDisp[0]), "Project:%s", cpList[iPos-1]);
+
+						cpDisp[1]=(char *) NULL;			// mark end of display
+
+						while ((iOpt=nc_menu(cpDisp,
+									cpMenu+CE_PROJECTS_MENU_P0)) != NC_QUIT)	// display and manage menu until requested to quit
+						  {
+							switch (iOpt)					// then check for menu selection actions
+							  {
+								case '1':
+									break;
+								case '2':
+//									ce_make_all();
+									break;
+								case '3':
+//									ce_make_install();
+									break;
+							  }
+						  }
 					  }
 				  }
 				break;
@@ -187,10 +232,10 @@ int main(int argc, char **argv)
 						ut_check(	cef_main(FA_READ+FA_STEP, 0) == FA_OK_IV0,		// prepare a select for selected item
 									"Read key0");							// jump to error: if SQL prepare fails.
 
-															// #TODO there must be a neater way rather than set these pointers for each line?
-															//		Probably by having the display list terminated by a null rather than a pointer to null.
-						cpDisp[0]=sDisp[0];					// establish an array of pointers for nc_menu
-						sprintf(sDisp[0]," ");
+		// #TODO there must be a neater way rather than set these cpDisp pointers for each sDisp line?
+		//		Probably by having the display list terminated by a null rather than a pointer to null?
+//						cpDisp[0]=sDisp[0];					// establish an array of pointers for nc_menu
+//						sprintf(sDisp[0]," ");
 
 						switch (CE.cLang)					// display item type
 						  {
@@ -210,22 +255,22 @@ int main(int argc, char **argv)
 							default:
 								sprintf(sDisp[2],"%c",CE.cLang);
 						  }
-						cpDisp[1]=sDisp[1];
-						snprintf(sDisp[1], sizeof(sDisp[0]), "Name=%-*.*s    (%s)",
+						cpDisp[0]=sDisp[0];
+						snprintf(sDisp[0], sizeof(sDisp[0]), "Name=%-*.*s    (%s)",
 								CE_NAME_S0, CE_NAME_S0,
 								sList[iPos-1][0],
 								sDisp[2]);
 
+						cpDisp[1]=sDisp[1];
+						snprintf(sDisp[1], sizeof(sDisp[0]), "%s", CE.sDesc);
+
 						cpDisp[2]=sDisp[2];
-						snprintf(sDisp[2], sizeof(sDisp[0]), "%s", CE.sDesc);
-
-						cpDisp[3]=sDisp[3];
-						if (CE.cLang == 'H')
-							sDisp[3][0]='\0';		// no example code to display for header files
+						if (CE.cLang == 'H' || CE.cLang == 'S')
+							sDisp[2][0]='\0';		// no example code to display for header or script files
 						else
-							snprintf(sDisp[3], sizeof(sDisp[0]), "%s", CE.sCode);
+							snprintf(sDisp[2], sizeof(sDisp[0]), "%s", CE.sCode);
 
-						cpDisp[4]=(char *) NULL;	// mark end of display
+						cpDisp[3]=(char *) NULL;	// mark end of display
 
 						iOpt=nc_menu(	cpDisp,
 										cpMenu+CE_ACTIONS_MENU_P0);

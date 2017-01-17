@@ -80,6 +80,10 @@ int main(int argc, char **argv)
 
 	ut_check(getcwd(CE.sDir, sizeof(CE.sDir)), "getcwd");	// get current working directory
 
+	strncpy(CE.sProject,
+			&CE.sDir[strlen(CE.sDir)+1-CE_PROJECT_S0],
+			CE_PROJECT_S0);						// get project code
+
 	CE.sDesc[0]='\0';							// Mark description field as empty
 
 	fp = fopen(CE.sSource, "r");				// Open file as read-only

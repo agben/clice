@@ -217,7 +217,7 @@ int main(int argc, char **argv)
 			memcpy(CEL.sName, CE.sName, CE_NAME_S0);		// This program
 			CEL.iNtype=CE_PROG_T0;							// This is a program linking to header(s)
 			CEL.iCtype=CE_HEAD_T0;
-			sprintf(CEL.sCode, "no code extract");
+			sprintf(CEL.sCode, "not used");
 			CEL.iTime=gxt_iTime[0];							// Mark with current time
 			for (j=0; j < iHeader; j++)						// Link all source header files to each function
 			  {												//	(as we don't know which one each function requires)
@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 
 			memcpy(CEL.sName, CE.sName, CE_NAME_S0);		// Record or remove links to this item
 			CEL.iNtype=CE_HEAD_T0;							// This is a header including other header files
-			sprintf(CEL.sCode, "no code extract");
+			sprintf(CEL.sCode, "not used");
 			for (i=0; i < iHeader; i++)						// Link the header file to any headers that it includes
 			  {
 				memcpy(CEL.sCalls, sHeader[i], CE_NAME_S0);	// The header files it includes
