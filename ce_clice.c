@@ -44,7 +44,7 @@ char *cpMenu[] =	{	"1) My Projects",
 						"!4) System Functions",
 						"!5) System Headers",
 			(char *) NULL,
-						"!1) Update project description",
+						"1) Update project description",
 						"!2) Make all",
 						"!3) Make install",
 			(char *) NULL,
@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 		switch (iOpt)										// then check for menu selection actions
 		  {
 			case 1:
-				CE.bmField=CEF_PROJECT_B0;					// Get a list of project names from the clice db
+				CE.bmField=CEF_PROJECT_B0;					// Get a list of projects from the clice db
 				CEL.bmField=0;
 				CE.sProject[0]='\0';						// #TODO have to provide a key for a mandatory WHERE ... , but why?
 				ut_check(cef_main(FA_READ+FA_DISTINCT,
@@ -129,7 +129,9 @@ int main(int argc, char **argv)
 				while (cef_main(FA_STEP, 0) == FA_OK_IV0)
 				  {
 					cpList[iHits[0]]=sList[iHits[0]][0];	// establish an array of pointers for nc_menu
-					sprintf(sList[iHits[0]][0],"%s",CE.sProject);	// pointers to the code name of project
+					snprintf(sList[iHits[0]][0],			//	and a list of known projects with any descriptions
+							CE_PROJECT_S0,
+							"%s",CE.sProject);
 					iHits[0]++;
 					if (iHits[0] == CE_LIST_M0)
 					  {
@@ -149,13 +151,33 @@ int main(int argc, char **argv)
 				  {
 					cpList[iHits[0]]=(char *) NULL;			// mark end of projects list
 
+					for (i=0; i < iHits[0]; i++)			// check for any project descriptions to add to menu
+					  {
+						CE.bmField=CEF_DESC_B0;
+						CEL.bmField=0;
+						CE.iType=CE_PROJ_T0;
+						snprintf(CE.sProject,
+							CE_PROJECT_S0,
+							"%s", sList[i][0]);
+						if (cef_main(FA_READ+FA_STEP,
+								"ce.type = % AND ce.project = %") == FA_OK_IV0)
+							snprintf(sList[i][0],
+								CE_DESC_S0,
+								"%s   %s",
+								CE.sProject, CE.sDesc);
+					  }
+
 					iPos=(iHits[0] == 1) ? 1 :
 						nc_menu(cpTitle+CE_SELECT_TITLE_P0,
 								cpList);					// display project list until selection or quit requested
-//					if (iPos == NC_QUIT) iOpt=NC_QUIT;		// Pass on a quit request from the search results list
 
 					if (iPos != NC_QUIT)
 					  {
+						CE.iType=CE_PROJ_T0;				// setup to read the project's details
+						for (i=0; i < CE_PROJECT_S0 &&
+								sList[iPos-1][0][i] > ' '; i++)
+							CE.sProject[i]=sList[iPos-1][0][i];
+						CE.sProject[i]='\0';
 
 						cpDisp[0]=sDisp[0];					// Display project details
 						snprintf(sDisp[0], sizeof(sDisp[0]), "Project:%s", cpList[iPos-1]);
@@ -167,12 +189,39 @@ int main(int argc, char **argv)
 						  {
 							switch (iOpt)					// then check for menu selection actions
 							  {
-								case '1':
+								case 1:
+									CE.bmField=CEF_ID_B0+CEF_DESC_B0;	// read the project's description
+									CEL.bmField=0;
+									if (cef_main(FA_READ+FA_STEP,
+											"ce.type = % AND ce.project = %") == FA_OK_IV0)
+									  {
+										i=FA_UPDATE;
+										CE.bmField=CEF_DESC_B0;		// only update the project's description
+									  }
+									else
+									  {
+										i=FA_WRITE;
+										CE.bmField=FA_ALL_COLS_B0;	// write a new project master record
+										sprintf(CE.sName,"PROJECT");
+										CE.iStatus=CE.iSize=0;
+										CE.iCDate=CE.iCTime=CE.iMDate=CE.iMTime=0;
+										CE.sDir[0]=CE.sSource[0]=CE.sCode[0]=CE.cLang='\0';
+										CE.cLang=' ';
+										CE.sDesc[0]='\0';			// clear description if nothing already recorded
+									  }
+
+									ios=nc_input(cpTitle+CE_SELECT_TITLE_P0,
+												CE.sDesc,
+												CE_DESC_S0-1);
+
+									ut_check(cef_main(i, 0) == FA_OK_IV0,
+										"Update desc");		// jump to error: if SQL prepare fails.
+
 									break;
-								case '2':
+								case 2:
 //									ce_make_all();
 									break;
-								case '3':
+								case 3:
 //									ce_make_install();
 									break;
 							  }

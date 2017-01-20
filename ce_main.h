@@ -48,6 +48,7 @@ void	ce_version(void);			// display version, copyright and licence details
 #define	CE_CODE_LINE_S0	60
 
 //------------------------------Identifiers for the type of each CE item and link types to other CE items
+#define	CE_PROJ_T0	0		// Project master records
 #define	CE_PROG_T0	1		// Programs and functions
 #define CE_HEAD_T0	2		// Header/library files
 
