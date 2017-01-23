@@ -37,16 +37,15 @@ char *cpTitle[] =	{	"clice Menu",
 			(char *) NULL};
 
 #define CE_PROJECTS_MENU_P0	6		// offsets for each list of menu options
-#define CE_ACTIONS_MENU_P0	10
+#define CE_ACTIONS_MENU_P0	9
 char *cpMenu[] =	{	"1) My Projects",
 						"2) My Programs",
 						"3) My Header files",
 						"!4) System Functions",
 						"!5) System Headers",
 			(char *) NULL,
-						"1) Update project description",
-						"!2) Make all",
-						"!3) Make install",
+						"!1) Make all",
+						"!2) Make install",
 			(char *) NULL,
 						"1) Next",
 						"2) Previous",
@@ -190,38 +189,9 @@ int main(int argc, char **argv)
 							switch (iOpt)					// then check for menu selection actions
 							  {
 								case 1:
-									CE.bmField=CEF_ID_B0+CEF_DESC_B0;	// read the project's description
-									CEL.bmField=0;
-									if (cef_main(FA_READ+FA_STEP,
-											"ce.type = % AND ce.project = %") == FA_OK_IV0)
-									  {
-										i=FA_UPDATE;
-										CE.bmField=CEF_DESC_B0;		// only update the project's description
-									  }
-									else
-									  {
-										i=FA_WRITE;
-										CE.bmField=FA_ALL_COLS_B0;	// write a new project master record
-										sprintf(CE.sName,"PROJECT");
-										CE.iStatus=CE.iSize=0;
-										CE.iCDate=CE.iCTime=CE.iMDate=CE.iMTime=0;
-										CE.sDir[0]=CE.sSource[0]=CE.sCode[0]=CE.cLang='\0';
-										CE.cLang=' ';
-										CE.sDesc[0]='\0';			// clear description if nothing already recorded
-									  }
-
-									ios=nc_input(cpTitle+CE_SELECT_TITLE_P0,
-												CE.sDesc,
-												CE_DESC_S0-1);
-
-									ut_check(cef_main(i, 0) == FA_OK_IV0,
-										"Update desc");		// jump to error: if SQL prepare fails.
-
-									break;
-								case 2:
 //									ce_make_all();
 									break;
-								case 3:
+								case 2:
 //									ce_make_install();
 									break;
 							  }
