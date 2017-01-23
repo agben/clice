@@ -232,6 +232,7 @@ int main(int argc, char **argv)
 		  }
 	  }
 
+	strncpy(CEL.sName, CE.sName, CE_NAME_S0);
 	CEL.iTime=gxt_iTime[0];					// Check for unused (not time stamped) links
 	CEL.iNtype=CE_PROG_T0;
 	CEL.iCtype=CE_PROG_T0;
