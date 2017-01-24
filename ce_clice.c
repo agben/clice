@@ -224,7 +224,7 @@ int main(int argc, char **argv)
 						iHits[0]--;
 						nc_message("Too many matches - showing first page only");
 						sleep(2);
-						continue;
+						break;
 					  }
 				  }
 
@@ -330,6 +330,7 @@ int main(int argc, char **argv)
 										"Read links from");									// from or jump to error: if fails.
 								  }
 
+								int iLen=0;									// Find longest name in list
 								iHits[1]=0;
 								while (cef_main(FA_STEP, 0) == FA_OK_IV0)
 								  {
@@ -351,17 +352,21 @@ int main(int argc, char **argv)
 											(i == CE_PROG_T0) ?	"function":
 											(i == CE_HEAD_T0) ?	"header":
 																"unknown");
-									iList[iHits[1]++][1]=0;		// Will determine if each called item exists in clice later
+									j=strnlen(cp, CE_NAME_S0);
+									if (j > iLen) iLen=j;			// check if this is the longest name?
+
+
+									iList[iHits[1]++][1]=0;			// Will determine if each called item exists in clice later
 									if (iHits[1] == CE_LIST_M0)		//#TODO need to handle large lists better - this will keep pausing
 									  {
 										iHits[1]--;
 										nc_message("Too many matches - showing first page only");
 										sleep(2);
-										continue;
+										break;
 									  }
 								  }
 
-								if (iHits[1] == 0)						// no matches in clice database
+								if (iHits[1] == 0)					// no matches in clice database
 								  {
 									if (iOpt == 3)
 										nc_message("No linked items found in clice");
@@ -372,12 +377,16 @@ int main(int argc, char **argv)
 								else
 								  {
 									cpList[iHits[1]]=(char *) NULL;	// mark end of search results list
+									iLen+=3;						// allow this many spaces between name and type in the list
 
 									for (i=0; i < iHits[1]; i++)
 									  {
 										for(j=0; sList[i][1][j] > ' '; j++)
 											CE.sName[j]=sList[i][1][j];
 										CE.sName[j]='\0';			// extract item name and null terminate
+
+										for (j=iLen; sList[i][1][j] != '\0'; j++)
+											sList[i][1][j]=sList[i][1][j+(CE_NAME_S0-iLen)];	// reduce blank space in output list
 
 										CE.bmField=CEF_ID_B0;		// See which called modules exist in clice
 										CEL.bmField=0;

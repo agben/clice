@@ -9,8 +9,6 @@
 #ifndef __CE_MAIN_INCLUDED__
 #define __CE_MAIN_INCLUDED__
 
-#include <fa_sql_def.h>			// common SQL definitions and parameters
-
 //------------------------------clice utility function prototypes
 int		cef_main(int, char*);		// CE database handler
 void	ce_help(void);				// display basic ce help
