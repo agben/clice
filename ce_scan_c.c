@@ -110,8 +110,11 @@ int main(int argc, char **argv)
 				int iSpace=0;					// flag to exclude leading or multiple spaces in a description
 				while (sBuff[i] != '\n' && k < (CE_DESC_S0 - 1))	// unpack description
 				  {
-					if (sBuff[i] > ' ' ||
-						(iSpace == 1 && sBuff[i] == ' '))
+					if (sBuff[i] != '\'' &&
+						sBuff[i] != '\"' &&
+						sBuff[i] != '`' &&		// to prevent an accidental SQL injection, ignore these!
+						(sBuff[i] > ' ' ||
+						(iSpace == 1 && sBuff[i] == ' ')))
 					  {
 						CE.sDesc[k++]=sBuff[i];
 						if (sBuff[i] == ' ')
@@ -219,7 +222,15 @@ int main(int argc, char **argv)
 				for (; i < BUFF_S0 && sBuff[i] == ' '; i++);	// skip past following spaces
 				for (j=0; j < (CE_CODE_LINE_S0-1) &&
 								sBuff[i] != '\n'; j++)			// Extract function definition
-					CE.sCode[j]=sBuff[i++];
+				  {
+					if (sBuff[i] == '\'' ||
+						sBuff[i] == '\"' ||
+						sBuff[i] == '`')						// substitute to prevent an accidental SQL injection!
+						CE.sCode[j]='~';
+					else
+						CE.sCode[j]=sBuff[i];
+					i++;
+				  }
 				for (; j < CE_CODE_LINE_S0; j++)
 							CE.sCode[j]='\0'; 					// null fill remainder of string
 

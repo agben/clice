@@ -104,8 +104,14 @@ int main(int argc, char **argv)
 			  {
 				for (i=12;
 						sBuff[i] <= ' '; i++);	// skip white space
-				for (j=0; j < CE_DESC_S0 && sBuff[i] != '\n'; j++)
-					CE.sDesc[j]=sBuff[i++];		// extract description
+				for (j=0; j < CE_DESC_S0 && sBuff[i] != '\n';)
+				  {
+					if (sBuff[i] != '\'' &&		// guard against accidental SQL injection
+						sBuff[i] != '\"' &&
+						sBuff[i] != '`')
+						CE.sDesc[j++]=sBuff[i];	// extract description
+					i++;
+				  }
 				for (; j < CE_DESC_S0; j++)
 					CE.sDesc[j]='\0';			// null terminate
 			  }

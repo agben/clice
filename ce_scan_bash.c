@@ -106,8 +106,11 @@ int main(int argc, char **argv)
 				while (sBuff[i] != '\n' &&
 						k < (CE_DESC_S0 - 1))	// unpack description
 				  {
-					if (sBuff[i] > ' ' ||
-						(iSpace == 1 && sBuff[i] == ' '))
+					if (sBuff[i] != '\'' &&
+						sBuff[i] != '\"' &&
+						sBuff[i] != '`' &&		// to prevent an accidental SQL injection, ignore these!
+						(sBuff[i] > ' ' ||
+						(iSpace == 1 && sBuff[i] == ' ')))
 					  {
 						CE.sDesc[k++]=sBuff[i];
 						if (sBuff[i] == ' ')
