@@ -22,7 +22,8 @@
 #include <ut_error.h>	// error and debug macros
 
 #define	BUFF_S0 80				// max objdump line width read from file
-#define	CE_SCAN_MODULES_M0 50	// max modules one program can link to
+#define	CE_SCAN_MODULE_M0 50	// max modules one program can link to
+#define	CE_MODULE_M0 10		// max number of functions written within one source file
 
 int main(int argc, char **argv)
   {
@@ -31,8 +32,12 @@ int main(int argc, char **argv)
 	int i, j, k;				// general purpose
 	int iSection = 0;			// section count through objdump 0=start, 1=Symbols,  2=.text, 3=remainder
 
-	char sModule[CE_SCAN_MODULES_M0][CE_NAME_S0];	// temp list of module names found in symbols table
+	char sModule[CE_SCAN_MODULE_M0][CE_NAME_S0];	// temp list of module names found in symbols table
 	int	iModule = 0;								// Count of how many found
+	char sSource[CE_NAME_S0];	// name of source file (without path or extension)
+	int	iFunc = 0;							// Count of how many functions written in this source file
+	char sFunc[CE_MODULE_M0][CE_NAME_S0];	// and a list of their function names (with main() converted to source name)
+
 
 	spCE = (struct CE_FIELDS*) &CE;
 	spCEL = (struct CEL_FIELDS*) &CEL;
@@ -83,15 +88,22 @@ int main(int argc, char **argv)
 	  {
 		ut_debug("in: %s", sBuff);
 
-		if (iSection == 0)
+		if (iSection == 0)							// Section 0 - at the start and looking for the symbol table
 		  {
 			if (memcmp(sBuff, "SYMBOL TABLE:", 13) == 0) iSection++;
 		  }
-		else if (iSection == 1)						// Symbol section
+		else if (iSection == 1)						// Section 1 - Symbol section - get symbol list and source module names
 		  {
 			if (memcmp(sBuff, "RELOCATION RECORDS FOR [.text]:", 31) == 0)
-				iSection++;
-			else if (sBuff[0] == '0')
+			  {
+				iSection++;							// end of section 1 so preserve CE details that are needed later
+				for (i=0; i < CE_NAME_S0 &&
+							CE.sSource[i] != '\0' &&
+							CE.sSource[i] != '.'; i++)
+					sSource[i]=CE.sSource[i];					// keep source name for use in next section
+				for (; i < CE_NAME_S0; i++) sSource[i]='\0';	// null fill remainder of string
+			  }
+			else if (sBuff[0] == '0')				// a symbol definition?
 			  {
 				if (sBuff[23] == 'f')				// find source filename
 				  {
@@ -112,12 +124,12 @@ int main(int argc, char **argv)
 						CE.sSource[i]=sBuff[j++];
 					  }
 					for ( ; i < CE_SOURCE_S0; i++)
-						CE.sSource[i]='\0';				// null fill remainder of string
+						CE.sSource[i]='\0';			// null fill remainder of string
 
 					if (CE.cLang == '?')
 						printf("CE: No valid file extension found\n");
 				  }
-				else if (sBuff[23] == 'F')				// find module name(s)
+				else if (sBuff[23] == 'F')			// find module name(s)
 				  {
 					j=48;
 					if (memcmp(&sBuff[j], "main", 4) == 0)		// replace 'main' modules with the source filename
@@ -129,6 +141,12 @@ int main(int argc, char **argv)
 						for (i=0; i < CE_NAME_S0 && sBuff[j] != '\n'; i++)	// sBuff will have a line feed before a terminating null
 							CE.sName[i]=sBuff[j++];
 					for ( ; i < CE_NAME_S0; i++) CE.sName[i]='\0';	// null fill remainder of string
+
+					if (iFunc < CE_MODULE_M0-1)
+						memcpy(sFunc[iFunc++], CE.sName, CE_NAME_S0);	// keep a list of written function names
+					else
+						printf("CE: Too many functions in one source file! Ignoring: %s\n",
+								CE.sName);
 
 					i=strtol(&sBuff[31], NULL, 16);					// Extract module size from hex to dec
 					CE.iCDate=gxt_iDate[0];							// Update last compiled date and time
@@ -165,7 +183,7 @@ int main(int argc, char **argv)
 						sprintf(CE.sDesc, "Need to scan source for description");
 						ut_check(getcwd(CE.sDir,
 								sizeof(CE.sDir)),
-								"getcwd");				// get current working directory
+								"getcwd");					// get current working directory
 
 						i=FA_WRITE;							// Insert all columns into db
 						CE.bmField=FA_ALL_COLS_B0;
@@ -188,8 +206,8 @@ int main(int argc, char **argv)
 				  }
 			  }
 		  }
-		else if (iSection == 2)							//  .text relocation records
-		  {
+		else if (iSection == 2)							// Section 2 - .text relocation records - identify all function calls
+		  {												// CE data changed from here by FA_LINK calls
 			if (sBuff[0] == 0)
 				break;									// blank line marks the end of the section
 			else if (memcmp(sBuff, "OFFSET", 6) == 0)
@@ -221,23 +239,27 @@ int main(int argc, char **argv)
 			else if (sBuff[0] > 'A' && sBuff[0] < 'z')	// module name found
 			  {
 				if (memcmp(sBuff, "main(", 5) == 0)		// replace 'main' modules with the source filename
-					for (i = 0; i < CE_NAME_S0 && CE.sSource[i] != '\0' && CE.sSource[i] != '.'; i++)
-						CEL.sName[i]=CE.sSource[i];
+					memcpy(CEL.sName, sSource, CE_NAME_S0);
 				else
+				  {
 					for (i=0; i < CE_NAME_S0 &&
 								sBuff[i] != '('; i++)	// update current module name
 						CEL.sName[i]=sBuff[i];
-				for ( ; i < CE_NAME_S0; i++) CEL.sName[i]='\0';		// null fill remainder of string
+					for (; i < CE_NAME_S0; i++) CEL.sName[i]='\0';		// null fill remainder of string
+				  }
 			  }
 		  }
 	  }
 
-	strncpy(CEL.sName, CE.sName, CE_NAME_S0);
-	CEL.iTime=gxt_iTime[0];					// Check for unused (not time stamped) links
-	CEL.iNtype=CE_PROG_T0;
-	CEL.iCtype=CE_PROG_T0;
-	ut_check(cef_main(FA_PURGE, 0) == FA_OK_IV0,
+	for (i=0; i < iFunc; i++)
+	  {
+		strncpy(CEL.sName, sFunc[i], CE_NAME_S0);
+		CEL.iTime=gxt_iTime[0];						// Check for unused (not time stamped) links
+		CEL.iNtype=CE_PROG_T0;
+		CEL.iCtype=CE_PROG_T0;
+		ut_check(cef_main(FA_PURGE, 0) == FA_OK_IV0,
 			"purge CEL");
+	  }
 
 error:
 	if (fp != NULL) fclose(fp);

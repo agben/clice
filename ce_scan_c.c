@@ -25,10 +25,10 @@
 
 #define	BUFF_S0 200		// Max length of source code lines
 #define	CE_HEADER_M0 40	// Max number of header files in one source file
+#define	CE_MODULE_M0 10	// Max number of function/headers written in one source file
 
 int main(int argc, char **argv)
   {
-	void ce_scan_c_update(void);
 	FILE *fp;
 	char sBuff[BUFF_S0];		// input buffer for init file reads
 	int i, j, k;
@@ -36,6 +36,10 @@ int main(int argc, char **argv)
 
 	int	iHeader = 0;			// number of header files included into source file
 	char sHeader[CE_HEADER_M0][CE_NAME_S0];	//List of header files found in source
+
+	int	iType;					// type of source file. i.e. header or program
+	int	iModule = 0;			// number of functions/headers written in source file
+	char sModule[CE_MODULE_M0][CE_NAME_S0];
 
 	spCE = (struct CE_FIELDS*) &CE;
 	spCEL = (struct CEL_FIELDS*) &CEL;
@@ -165,150 +169,94 @@ int main(int argc, char **argv)
 	CE.iCTime=CE.iMTime;
 	CE.iSize=0;
 
-	CE.sName[0]='\0';							// flag as no function modules found yet
-
-	fp = fopen(sBuff, "r");						// Open ctags file as read-only
-	ut_check(fp != NULL, "open ctags file");	// jumps to error: if not ok
-
-	while (fgets(sBuff, BUFF_S0, fp) != NULL)
+	iModule=0;									// count of modules written in this source file
+	if (CE.cLang == 'H')						// this is a header file
 	  {
-		ut_debug("in: %s", sBuff);
-
-		for (i = 0; i < BUFF_S0 && sBuff[i] != ' '; i++);	// skip past item name and
-		for ( ; i < BUFF_S0 && sBuff[i] == ' '; i++);		// skip past following spaces to find item type
-
-		if (memcmp(&sBuff[i], "function", 8) == 0)			// is the item a function definition?
-		  {
-			if (CE.sName[0] != '\0')						// Not the only function in this source file so purge the previous
-			  {
-				CEL.iNtype=CE_PROG_T0;
-				memcpy(CEL.sName, CE.sName, CE_NAME_S0);	// If any header links were not found then they've been removed from
-				CEL.iCtype=CE_HEAD_T0;						//	the source file and need purging from the clice db.
-				CEL.iTime=gxt_iTime[0];
-
-				ut_check(cef_main(FA_PURGE,
-						0) == FA_OK_IV0, "purge CEL")
-			 }
-
-			if (memcmp(sBuff, "main", 4) == 0)				// replace 'main' modules with the source filename
-				for (j = 0; j < CE_NAME_S0 &&
-						CE.sSource[j] != '\0' &&
-						CE.sSource[j] != '.'; j++)
-					CE.sName[j]=CE.sSource[j];				// #TODO warn and ignore names that are too long
-			else
-				for (j=0; j < (CE_NAME_S0-1) &&
-									sBuff[j] != ' '; j++)	// otherwise copy the item name
-					CE.sName[j]=sBuff[j];
-			for (; j < CE_NAME_S0; j++) CE.sName[j]='\0';	// null fill remainder of string
-
-			i+=8;											// skip function
-			for (; i < BUFF_S0 && sBuff[i] == ' '; i++);	// skip past following spaces
-			for (; i < BUFF_S0 && sBuff[i] != ' '; i++);	// skip past line number
-			for (; i < BUFF_S0 && sBuff[i] == ' '; i++);	// skip past following spaces
-			for (; i < BUFF_S0 && sBuff[i] != ' '; i++);	// skip past source file name
-			for (; i < BUFF_S0 && sBuff[i] == ' '; i++);	// skip past following spaces
-			for (j=0; j < (CE_CODE_LINE_S0-1) &&
-									sBuff[i] != '\n'; j++)	// Extract function definition
-				CE.sCode[j]=sBuff[i++];
-			for (; j < CE_CODE_LINE_S0; j++) CE.sCode[j]='\0';  // null fill remainder of string
-
-			ce_scan_c_update();								// update clice db
-
-			memcpy(CEL.sName, CE.sName, CE_NAME_S0);		// This program
-			CEL.iNtype=CE_PROG_T0;							// This is a program linking to header(s)
-			CEL.iCtype=CE_HEAD_T0;
-			sprintf(CEL.sCode, "not used");
-			CEL.iTime=gxt_iTime[0];							// Mark with current time
-			for (j=0; j < iHeader; j++)						// Link all source header files to each function
-			  {												//	(as we don't know which one each function requires)
-				memcpy(CEL.sCalls, sHeader[j], CE_NAME_S0);	// Includes this header file
-
-				ut_check(cef_main(FA_LINK, 0) == FA_OK_IV0, "update CEL")
-			  }
-		  }
-	  }
-
-	if (CE.cLang != 'H' && CE.sName[0] == '\0')
-		printf("CE: No functions found in source file?\n");
-	else
-	  {
-		CEL.iTime=gxt_iTime[0];
-		CEL.iCtype=CE_HEAD_T0;								// items being linked to are header files
-
-		if (CE.cLang == 'H')								// need to update library modules
-		  {
-			for (i = 0; i < CE_NAME_S0 &&
+		CE.iType=CE_HEAD_T0;
+		for (i = 0; i < CE_NAME_S0 &&			// get header name (without the file extension)
 						CE.sSource[i] != '\0' &&
 						CE.sSource[i] != '.'; i++)
-				CE.sName[i]=CE.sSource[i];
-			for ( ; i < CE_NAME_S0; i++) CE.sName[i]='\0';  // null fill remainder of string
+			CE.sName[i]=CE.sSource[i];
+		for (; i < CE_NAME_S0; i++) CE.sName[i]='\0';	// null fill remainder of string
 
-			ce_scan_c_update();								// update clice db
+		ut_check(cef_main(FA_ADD, 0) == FA_OK_IV0, "h add CE");
 
+		memcpy(sModule[iModule], CE.sName, CE_NAME_S0);	// retain name for adding/removing links below
+		iModule++;
+	  }
+	else										// a function source file so read through a ctags analysis
+	  {
+		CE.iType=CE_PROG_T0;
 
-			memcpy(CEL.sName, CE.sName, CE_NAME_S0);		// Record or remove links to this item
-			CEL.iNtype=CE_HEAD_T0;							// This is a header including other header files
-			sprintf(CEL.sCode, "not used");
-			for (i=0; i < iHeader; i++)						// Link the header file to any headers that it includes
+		fp = fopen(sBuff, "r");						// Open ctags file as read-only
+		ut_check(fp != NULL, "open ctags file");	// jumps to error: if not ok
+
+		while (fgets(sBuff, BUFF_S0, fp) != NULL)
+		  {
+			ut_debug("in: %s", sBuff);
+
+			for (i = 0; i < BUFF_S0 && sBuff[i] != ' '; i++);	// skip past item name and
+			for (; i < BUFF_S0 && sBuff[i] == ' '; i++);		// skip past following spaces to find item type
+
+			if (memcmp(&sBuff[i], "function", 8) == 0)			// is the item a function definition?
 			  {
-				memcpy(CEL.sCalls, sHeader[i], CE_NAME_S0);	// The header files it includes
+				if (memcmp(sBuff, "main", 4) == 0)				// replace 'main' modules with the source filename
+					for (j = 0; j < CE_NAME_S0 &&
+							CE.sSource[j] != '\0' &&
+							CE.sSource[j] != '.'; j++)
+					CE.sName[j]=CE.sSource[j];				// #TODO warn and ignore names that are too long
+				else
+					for (j=0; j < (CE_NAME_S0-1) &&
+									sBuff[j] != ' '; j++)	// otherwise copy the item name
+						CE.sName[j]=sBuff[j];
+				for (; j < CE_NAME_S0; j++) CE.sName[j]='\0';	// null fill remainder of string
 
-				ut_check(cef_main(FA_LINK, 0) == FA_OK_IV0, "link CEL")
+				i+=8;											// skip function
+				for (; i < BUFF_S0 && sBuff[i] == ' '; i++);	// skip past following spaces
+				for (; i < BUFF_S0 && sBuff[i] != ' '; i++);	// skip past line number
+				for (; i < BUFF_S0 && sBuff[i] == ' '; i++);	// skip past following spaces
+				for (; i < BUFF_S0 && sBuff[i] != ' '; i++);	// skip past source file name
+				for (; i < BUFF_S0 && sBuff[i] == ' '; i++);	// skip past following spaces
+				for (j=0; j < (CE_CODE_LINE_S0-1) &&
+								sBuff[i] != '\n'; j++)			// Extract function definition
+					CE.sCode[j]=sBuff[i++];
+				for (; j < CE_CODE_LINE_S0; j++)
+							CE.sCode[j]='\0'; 					// null fill remainder of string
+
+				ut_check(cef_main(FA_ADD, 0) == FA_OK_IV0,
+							"f add CE");							// update clice db
+
+				memcpy(sModule[iModule], CE.sName, CE_NAME_S0);	// Keep list of functions found
+				iModule++;
 			  }
 		  }
-		else
-		  {
-			memcpy(CEL.sName, CE.sName, CE_NAME_S0);		// Record or remove links to this item
-			CEL.iNtype=CE_PROG_T0;							// This is a program including header files
+		if (iModule == 0)
+			printf("CE: No modules found in source file?\n");
+	  }
+
+	iType=CE.iType;											// beyond here FA_LINK will change CE data so retain source type
+
+	for (i=0; i < iModule; i++)
+	  {
+		memcpy(CEL.sName, sModule[i], CE_NAME_S0);			// source module names retained in sModule[]
+		CEL.iNtype=iType;
+		sprintf(CEL.sCode, "not used");
+		CEL.iTime=gxt_iTime[0];								// Mark with current time
+		for (j=0; j < iHeader; j++)							// Link all source header files to each function
+		  {													//	(as we don't know which one each function requires)
+			memcpy(CEL.sCalls, sHeader[j], CE_NAME_S0);		// Includes this header file
+			CEL.iCtype=CE_HEAD_T0;							// need to keep resetting as FA_LINK will change to system or local header
+
+			ut_check(cef_main(FA_LINK, 0) == FA_OK_IV0, "update CEL");
+//#TODO should only display these are new headers for the 1st function - else get a duplicate list for each function displayed
 		  }
 
-		i=cef_main(FA_PURGE,0);								// Remove any header links that are nolonger there
-		ut_check(i == FA_OK_IV0, "purge CEL: %d", i);
+		CEL.iCtype=CE_HEAD_T0;								//	purge any headers no longer included
+		ut_check(cef_main(FA_PURGE,0) == FA_OK_IV0, "purge CEL");
 	  }
 
 error:
 	if (fp != NULL) fclose(fp);
 	cef_main(FA_CLOSE, 0);
 	return 0;
-  };
-
-
-//--------------------------------------------------------------
-//
-// Update or create a clice db entry for the details held in the CE struct
-//
-//--------------------------------------------------------------
-
-void ce_scan_c_update(void)
-  {
-	int ios;
-
-
-	CE.bmField=CEF_ID_B0;							// only need to read ID to confirm if this module exists in CE
-	CEL.bmField=0;
-	if (cef_main(FA_READ+FA_KEY1+FA_STEP, 0) == FA_NODATA_IV0)	// module not found so create a new CE module
-	  {
-		if (CE.cLang == 'H')
-		  {
-			printf("CE: New header file added - %s\n", CE.sName);
-			CE.iType=CE_HEAD_T0;
-		  }
-		else
-		  {
-			printf("CE: New program module added - %s\n", CE.sName);
-			CE.iType=CE_PROG_T0;
-		  }
-
-		CE.bmField=FA_ALL_COLS_B0;				// Going to insert all new fields
-		ios=cef_main(FA_WRITE, 0);				// Write a new CE module to db
-		ut_check(ios == FA_OK_IV0, "write %d", ios);
-	  }
-	else										// exists so update last modified date/time
-	  {
-		CE.bmField=CEF_LAST_MOD_B0+CEF_DESC_B0;	// and description (in case changed)
-		ios=cef_main(FA_UPDATE+FA_KEY0, 0);		// update CE module in db
-		ut_check(ios == FA_OK_IV0, "rewrite %d", ios);
-	  }
-error:
-	return;
   };

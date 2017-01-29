@@ -41,8 +41,8 @@ char *cpTitle[] =	{	"clice Menu",
 char *cpMenu[] =	{	"1) My Projects",
 						"2) My Programs",
 						"3) My Header files",
-						"!4) System Functions",
-						"!5) System Headers",
+						"4) System Functions",
+						"5) System Headers",
 			(char *) NULL,
 						"!1) Make all",
 						"!2) Make install",
@@ -201,9 +201,12 @@ int main(int argc, char **argv)
 				break;
 			case 2:
 			case 3:
+			case 4:
+			case 5:
 				nc_message("Use % for wildcard");
+
 //#TODO Shouldn't tie menu options to the item types held in slice
-				CE.iType=(iOpt == 2) ? CE_PROG_T0 : CE_HEAD_T0;	// set type of item required (program, header, ...)
+				CE.iType=iOpt-1;					// set type of item required (program, header, ...)
 				i=nc_input(	cpTitle+(CE_PROG_TITLE_P0+((iOpt-2)*2)),
 							CE.sName,
 							CE_NAME_S0-1);			// set name to look for in clice db
@@ -256,11 +259,17 @@ int main(int argc, char **argv)
 //						cpDisp[0]=sDisp[0];					// establish an array of pointers for nc_menu
 //						sprintf(sDisp[0]," ");
 
-						switch (CE.cLang)					// display item type
+						switch (CE.iType)					// display item type
 						  {
-							case 'C':
-							case 'H':
-								sDisp[2][0] = 'C';
+							case CE_PROG_T0:
+							case CE_HEAD_T0:
+								if (CE.cLang == 'S')
+								  {
+									sprintf(sDisp[2],"Shell script");
+									break;
+								  }
+								if (CE.cLang == 'C' || CE.cLang == 'H')
+									sDisp[2][0] = 'C';
 								if (CE.iType == CE_PROG_T0)
 									sprintf(&sDisp[2][1]," program");
 								else if (CE.iType == CE_HEAD_T0)
@@ -268,23 +277,30 @@ int main(int argc, char **argv)
 								else
 									sprintf(&sDisp[2][1]," unknown");
 								break;
-							case 'S':
-								sprintf(sDisp[2],"Shell script");
+							case CE_SYSF_T0:
+								sprintf(&sDisp[2][0],"system function");
+								break;
+							case CE_SYSH_T0:
+								sprintf(&sDisp[2][0],"system header");
 								break;
 							default:
-								sprintf(sDisp[2],"%c",CE.cLang);
+								sprintf(sDisp[2],"?? %c",CE.cLang);
 						  }
 						cpDisp[0]=sDisp[0];
+						for (i=0; sList[iPos-1][0][i] > ' ' && i < CE_NAME_S0; i++);	//Find length of item name
 						snprintf(sDisp[0], sizeof(sDisp[0]), "Name=%-*.*s    (%s)",
-								CE_NAME_S0, CE_NAME_S0,
+								i, i,
 								sList[iPos-1][0],
 								sDisp[2]);
 
 						cpDisp[1]=sDisp[1];
-						snprintf(sDisp[1], sizeof(sDisp[0]), "%s", CE.sDesc);
+						if (CE.iType < CE_SYSF_T0)				// local function/header?
+							snprintf(sDisp[1], sizeof(sDisp[0]), "%s", CE.sDesc);
+						else
+							sDisp[1][0]='\0';
 
 						cpDisp[2]=sDisp[2];
-						if (CE.cLang == 'H' || CE.cLang == 'S')
+						if (CE.iType > CE_HEAD_T0 || CE.cLang == 'H' || CE.cLang == 'S')
 							sDisp[2][0]='\0';		// no example code to display for header or script files
 						else
 							snprintf(sDisp[2], sizeof(sDisp[0]), "%s", CE.sCode);
@@ -330,7 +346,7 @@ int main(int argc, char **argv)
 										"Read links from");									// from or jump to error: if fails.
 								  }
 
-								int iLen=0;									// Find longest name in list
+								int iLen=0;										// Find longest name in list
 								iHits[1]=0;
 								while (cef_main(FA_STEP, 0) == FA_OK_IV0)
 								  {
@@ -351,6 +367,8 @@ int main(int argc, char **argv)
 											cp,
 											(i == CE_PROG_T0) ?	"function":
 											(i == CE_HEAD_T0) ?	"header":
+											(i == CE_SYSF_T0) ?	"system function":
+											(i == CE_SYSH_T0) ?	"system Header":
 																"unknown");
 									j=strnlen(cp, CE_NAME_S0);
 									if (j > iLen) iLen=j;			// check if this is the longest name?
@@ -390,7 +408,7 @@ int main(int argc, char **argv)
 
 										CE.bmField=CEF_ID_B0;		// See which called modules exist in clice
 										CEL.bmField=0;
-										ut_check(cef_main(FA_READ+FA_KEY1,
+										ut_check(cef_main(FA_READ+FA_KEY1,		// #TODO should read by name + type
 															0) == FA_OK_IV0,	// prepare a select for selected item
 												"Read key1");		// jump to error: if SQL prepare fails.
 

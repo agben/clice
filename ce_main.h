@@ -49,6 +49,8 @@ void	ce_version(void);			// display version, copyright and licence details
 #define	CE_PROJ_T0	0		// Project master records
 #define	CE_PROG_T0	1		// Programs and functions
 #define CE_HEAD_T0	2		// Header/library files
+#define CE_SYSF_T0	3		// system functions
+#define CE_SYSH_T0	4		// system header files
 
 //------------------------------Declare some meaningful field names to map to the unpacked data
 struct CE_FIELDS
