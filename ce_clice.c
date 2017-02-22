@@ -205,11 +205,14 @@ int main(int argc, char **argv)
 			case 5:
 				nc_message("Use % for wildcard");
 
-//#TODO Shouldn't tie menu options to the item types held in slice
 				CE.iType=iOpt-1;					// set type of item required (program, header, ...)
 				i=nc_input(	cpTitle+(CE_PROG_TITLE_P0+((iOpt-2)*2)),
 							CE.sName,
-							CE_NAME_S0-1);			// set name to look for in clice db
+							CE_NAME_S0-1);			// set name to look for in clice db (-1 to ensure room for trailing null)
+				i=strnlen(CE.sName, CE_NAME_S0-1);
+				if (i < CE_NAME_S0-1)
+					CE.sName[i++]='%';				// if room add a default wildcard
+				CE.sName[i]='\0';
 
 				CE.bmField=CEF_ID_B0+CEF_NAME_B0;	// What to read from the ce database
 				CEL.bmField=0;

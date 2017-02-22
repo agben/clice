@@ -77,7 +77,7 @@ esac
 
 CE_PROGN="${CE_FNAM%.*}"		# program name minus its extension
 
-read -p "EDIT (Y/N/T) " CE_EDD
+read -p "EDIT (Y/T) " CE_EDD
 case $CE_EDD in
   [Yy])
 #TODO should use the default editor
@@ -110,7 +110,7 @@ esac
 
 case "$CE_LANG" in
  [FC])									# Requires compiling?
-	read -p "COMPILE (Y/N/d/D) " CE_CO
+	read -p "COMPILE (Y/d/D) " CE_CO
 	if [[ $CE_CO == "d" ]]
 	 then
 		GXT_DEBUG="DEBUG=1"
