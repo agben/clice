@@ -18,7 +18,7 @@ _ce_edit()
 		if [ -d "$SOURCEDIR" ]						# does project directory exist?
 		 then
 			cd ${SOURCEDIR}/
-			COMPREPLY=( $( compgen -f ${cur} ) )	# list files that match what's been typed
+			COMPREPLY=( $( compgen -f -X '!*.*' ${cur} ) )	# list files that match what's been typed (and have a file extension)
 		fi
 	fi
 
