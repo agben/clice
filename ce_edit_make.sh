@@ -19,7 +19,7 @@ if [ -d "$CE_TOPD/$CE_PROJECT" ]
  then
 	cd "$CE_TOPD/$CE_PROJECT/"
 
-	nano makefile
+	"${EDITOR:-nano}" makefile
 
 	if [ -f makefile~ ]				# If created a new version, move the previous to the Backup folder
 	 then

@@ -19,7 +19,7 @@ CE_CLICEFILE=".$(echo $CE_PROJECT|tr [A-Z] [a-z]).clice"
 if [ -z $CE_PROJECT ]
  then
 	cd "$CE_TOPD"
-	nano .master.clice
+	"${EDITOR:-nano}" .master.clice
 
 elif [ -d "$CE_TOPD/$CE_PROJECT" ]
  then
@@ -31,7 +31,7 @@ elif [ -d "$CE_TOPD/$CE_PROJECT" ]
 		cp "$CE_TOPD/.template.clice" "$CE_CLICEFILE"	# If no clice config file for this project then start with a template
 	fi
 
-	nano "$CE_CLICEFILE"
+	"${EDITOR:-nano}" "$CE_CLICEFILE"
 
 	if [ -f "$CE_CLICEFILE~" ]				# If created a new version, move the previous to the Backup folder
 	 then

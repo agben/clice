@@ -80,8 +80,7 @@ CE_PROGN="${CE_FNAM%.*}"		# program name minus its extension
 read -p "EDIT (Y/T) " CE_EDD
 case $CE_EDD in
   [Yy])
-#TODO should use the default editor
-	nano $CE_FNAM						# See /usr/share/nano for syntax highlighting rules
+	"${EDITOR:-nano}" $CE_FNAM			# See /usr/share/nano for syntax highlighting rules
 
 	if [ -f "$CE_FNAM"~ ]				# If created a new version, move the previous to the Backup folder
 	 then
@@ -145,7 +144,6 @@ case $CE_CO in
 							# -L = location of my libraries
 							# -l = libraries to link against
 							# -Wall = I want to see all warnings
-							# -Wtabs = but don't want to have to convert FWS tabs to spaces
 #TODO need a test for a program or subroutine/function
 #			gfortran	\
 #					-c	\
