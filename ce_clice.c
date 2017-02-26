@@ -9,7 +9,6 @@
 //--------------------------------------------------------------
 
 #include <ctype.h>		// common I/O functions like toupper()
-#include <getopt.h>		// for getopt_long - argument parsing
 #include <stdlib.h>		// memory management
 #include <string.h>		// for memcpy
 
@@ -59,13 +58,6 @@ char *cpMenu[] =	{	"1) My Projects",
 
 int main(int argc, char **argv)
   {
-	static struct option long_options[] = { 		// valid arguments: name, has_arg(yes=1, no=0, opt=2), flag, val
-					{"help",	0,	0,	0},			// 0	Keep this order for parsing after getopt_long
-					{"version",	0,	0,	0},			// 1
-					{NULL,		0,	NULL,	0}
-	};
-
-	int option_index = 0;
 	int	i, j;
 	char *cp;
 	int	ios;					// io status
@@ -86,28 +78,7 @@ int main(int argc, char **argv)
     char *cpDisp[CE_DISP_M0];
 
 
-
-    while ((i=getopt_long(	argc,					//number of arguments
-							argv,					//argument values - an array of pointers to each argument
-							"",						//permitted short arguments  i.e. -v (none permitted)
-							long_options,			//permitted long arguments   i.e. --version
-							&option_index)) != -1)
-	  {
-		if (i == '?' || i != 0)				// invalid arg or arg qualifier so abort
-		  {
-			return -1;
-		  }
-		else if (option_index == 0)			// --help
-		  {
-			ce_help();
-			return 0;
-		  }
-		else if (option_index == 1)			// --version
-		  {
-			ce_version();
-			return 0;
-		  }
-	  }
+	if (ce_args(argc, argv) < 0) goto error;	// process any command arguments i.e. clice --version
 
 	ut_check(cef_main(FA_INIT+FA_OPEN, 0) == 0,				// initialise libgxtfa and open clice database
 			"Open ce_main.db");

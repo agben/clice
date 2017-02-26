@@ -14,7 +14,6 @@
 //--------------------------------------------------------------
 
 #include <fcntl.h>		// file access functions
-#include <getopt.h>		// for getopt_long - argument parsing
 #include <string.h>		// for strcopy
 
 #include <fa_def.h>		// file actions
@@ -28,7 +27,7 @@ int main(int argc, char **argv)
   {
 	int ios=0;
 
-	FILE *fp;
+	FILE *fp = 0;
 	char sBuff[BUFF_S0];		// input buffer for init file reads
 	int i, j, k;
 	char *cp;
@@ -36,44 +35,17 @@ int main(int argc, char **argv)
 	spCE = (struct CE_FIELDS*) &CE;
 	spCEL = (struct CEL_FIELDS*) &CEL;
 
-								// valid arguments: name, has_arg(yes=1, no=0, opt=2), flag, val
-	static struct option long_options[] = {
-		{"help",	0,	0,		0},		// 0	Keep this order for parsing after getopt_long
-		{"version",	0,	0,		0},		// 1
-		{NULL,		0,	NULL,	0}
-	};
 
-	int option_index = 0;
-
-	while ((i=getopt_long(	argc,				//number of arguments
-							argv,				//argument values - an array of pointers to each argument
-							"",					//permitted short arguments  i.e. -v (none permitted)
-							long_options,		//permitted long arguments   i.e. --version
-							&option_index)) != -1)
-	 {
-		if (i == '?' || i != 0)					// invalid arg or arg qualifier so abort
-			return -1;
-		else if (option_index == 0)				// --help
-		 {
-			ce_help();
-			return 0;
-		 }
-		else if (option_index == 1)				// --version
-		 {
-			ce_version();
-			return 0;
-		 }
-	 }
-
-	ut_check(optind == argc-1,					// still an argument remaining? the program to scan
+	i=ce_args(argc, argv);			// parse command arguments i.e. ce_scan_bash --version
+	if (i < 0) goto error;
+	ut_check(i == argc-1,			// still an argument remaining? the program to scan
 		"Usage = ce_scan_bash <script.sh>");
 
+	strncpy(	CE.sSource,			// Store source file name
+				argv[i],
+				CE_SOURCE_S0);
 
 	CE.cLang='S';
-
-	strncpy(	CE.sSource,						// Store source file name
-				argv[optind],
-				CE_SOURCE_S0);
 
 	ut_check(cef_main(FA_INIT+FA_OPEN, 0) == 0,	// Initialise libgxtfa and open clice db
 			"Failed to open clice db");

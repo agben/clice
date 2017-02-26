@@ -11,9 +11,7 @@
 
 //------------------------------clice utility function prototypes
 int		cef_main(int, char*);		// CE database handler
-void	ce_help(void);				// display basic ce help
-int		ce_menu(char **, char **);	// menu management for ce_ctrl
-void	ce_version(void);			// display version, copyright and licence details
+int		ce_args(int, char**);		// parse clice command-line arguments
 
 //------------------------------Identify field identifiers in the order of columns in the db table.
 					//	(order not essential but it makes generated SQL code easier to check)

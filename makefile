@@ -22,22 +22,22 @@ libgxtut = $(objdir)/libgxtut.a
 
 # Executables
 all: ce_clice ce_scan_bash ce_scan_c ce_scan_obj ce_scan_project
-ce_clice: ce_clice.c $(objdir)/cef_main.o $(objdir)/ce_utils.o $(libgxtfa) $(libgxtnc)
+ce_clice: ce_clice.c $(objdir)/ce_args.o $(objdir)/cef_main.o $(libgxtfa) $(libgxtnc)
 	$(GCC) $(CFLAGS) $^ -o $@ -lmenu -lncurses -lsqlite3
-ce_scan_bash: ce_scan_bash.c $(objdir)/cef_main.o $(objdir)/ce_utils.o $(libgxtfa) $(libgxtut)
+ce_scan_bash: ce_scan_bash.c $(objdir)/ce_args.o $(objdir)/cef_main.o $(libgxtfa) $(libgxtut)
 	$(GCC) $(CFLAGS) $^ -o $@ -lsqlite3
-ce_scan_c: ce_scan_c.c $(objdir)/cef_main.o $(objdir)/ce_utils.o $(libgxtfa) $(libgxtut)
+ce_scan_c: ce_scan_c.c $(objdir)/ce_args.o $(objdir)/cef_main.o $(libgxtfa) $(libgxtut)
 	$(GCC) $(CFLAGS) $^ -o $@ -lsqlite3
-ce_scan_obj: ce_scan_obj.c $(objdir)/cef_main.o $(objdir)/ce_utils.o $(libgxtfa) $(libgxtut)
+ce_scan_obj: ce_scan_obj.c $(objdir)/ce_args.o $(objdir)/cef_main.o $(libgxtfa) $(libgxtut)
 	$(GCC) $(CFLAGS) $^ -o $@ -lsqlite3
-ce_scan_project: ce_scan_project.c $(objdir)/cef_main.o $(objdir)/ce_utils.o $(libgxtfa) $(libgxtut)
+ce_scan_project: ce_scan_project.c $(objdir)/ce_args.o $(objdir)/cef_main.o $(libgxtfa) $(libgxtut)
 	$(GCC) $(CFLAGS) $^ -o $@ -lsqlite3
 
 # Subroutines and functions
 $(objdir)/cef_main.o: cef_main.c \
 						$(includedir)/ce_main.h $(includedir)/ce_main_def.h
 	$(GCC) $(CFLAGS) -c $< -o $@
-$(objdir)/ce_utils.o: ce_utils.c
+$(objdir)/ce_args.o: ce_args.c
 	$(GCC) $(CFLAGS) -c $< -o $@
 
 # Tidy-up.
