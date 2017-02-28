@@ -36,15 +36,17 @@ char *cpTitle[] =	{	"clice Menu",
 			(char *) NULL};
 
 #define CE_PROJECTS_MENU_P0	6		// offsets for each list of menu options
-#define CE_ACTIONS_MENU_P0	9
+#define CE_ACTIONS_MENU_P0	11
 char *cpMenu[] =	{	"1) My Projects",
 						"2) My Programs",
 						"3) My Header files",
 						"4) System Functions",
 						"5) System Headers",
 			(char *) NULL,
-						"!1) Make all",
-						"!2) Make install",
+						"1) Next",
+						"2) Previous",
+						"!3) Make all",
+						"!4) Make install",
 			(char *) NULL,
 						"1) Next",
 						"2) Previous",
@@ -54,6 +56,106 @@ char *cpMenu[] =	{	"1) My Projects",
 						"6) Remove",
 						"!7) Make",
 			(char *) NULL};
+
+
+void ce_clice_project(void)
+  {
+	int	i;
+	int	iOpt;					// selected menu option
+	int iPos;					// position within a search list
+	int iHits;					// number of hits found by each search
+
+    char sList[CE_LIST_M0][CE_PROJECT_S0+3+CE_DESC_S0];	// list of their names
+    char *cpList[CE_LIST_M0];
+
+    char sDisp[CE_DISP_M0][CE_DESC_S0+10];	// bespoke menu/list for display
+    char *cpDisp[CE_DISP_M0];
+
+
+
+	CE.bmField=CEF_PROJECT_B0;					// Get a list of projects from the clice db
+	CEL.bmField=0;
+	CE.sProject[0]='\0';						// #TODO have to provide a key for a mandatory WHERE ... , but why?
+	ut_check(cef_main(FA_READ+FA_DISTINCT,
+				"ce.project > %") == FA_OK_IV0,
+					"Read projects");			// jump to error: if SQL prepare fails.
+	iHits=0;
+	while (cef_main(FA_STEP, 0) == FA_OK_IV0)
+	  {
+		cpList[iHits]=sList[iHits];				// establish an array of pointers for nc_menu
+		snprintf(	sList[iHits],				//	and a list of known projects with any descriptions
+					CE_PROJECT_S0,
+					"%s",CE.sProject);
+		iHits++;
+		if (iHits == CE_LIST_M0)
+		  {
+			iHits--;
+			nc_message("Too many projects - showing first page only");
+			sleep(2);
+			break;
+		  }
+	  }
+
+	if (iHits == 0)								// no projects found in clice db
+	  {
+		nc_message("No projects found");
+		sleep(2);
+	  }
+	else
+	  {
+		cpList[iHits]=(char *) NULL;			// mark end of projects list
+		for (i=0; i < iHits; i++)				// check for any project descriptions to add to menu
+		  {
+			CE.bmField=CEF_DESC_B0;
+			CEL.bmField=0;
+			CE.iType=CE_PROJ_T0;
+			snprintf(	CE.sProject,
+						CE_PROJECT_S0,
+						"%s", sList[i]);
+			if (cef_main(FA_READ+FA_STEP,
+					"ce.type = % AND ce.project = %") == FA_OK_IV0)
+				snprintf(	sList[i],
+							CE_PROJECT_S0+3+CE_DESC_S0,
+							"%s   %s",
+							CE.sProject, CE.sDesc);
+		  }
+
+		iOpt=iPos=(iHits == 1) ? 1 :
+			nc_menu(cpTitle+CE_SELECT_TITLE_P0,
+					cpList);					// display project list until selection or quit requested
+		while (iOpt != NC_QUIT)
+		  {
+			CE.iType=CE_PROJ_T0;				// setup to read the project's details
+			for (i=0; i < CE_PROJECT_S0 &&
+					sList[iPos-1][i] > ' '; i++)
+					CE.sProject[i]=sList[iPos-1][i];
+			CE.sProject[i]='\0';
+
+			cpDisp[0]=sDisp[0];					// Display project details
+			snprintf(sDisp[0], sizeof(sDisp[0]), "Project:%s", cpList[iPos-1]);
+
+			cpDisp[1]=(char *) NULL;			// mark end of display
+
+			iOpt=nc_menu(cpDisp, cpMenu+CE_PROJECTS_MENU_P0);
+			switch (iOpt)
+			  {
+				case 1:							// Next item
+					if (iPos < iHits) iPos++;
+					break;
+				case 2:							// Previous item
+					if (iPos-1 > 0) iPos--;
+					break;
+				case 3:
+//					ce_make_all();
+					break;
+				case 4:
+//					ce_make_install();
+					break;
+			  }
+		  }
+	  }
+error:;
+  };
 
 
 int main(int argc, char **argv)
@@ -89,86 +191,7 @@ int main(int argc, char **argv)
 		switch (iOpt)										// then check for menu selection actions
 		  {
 			case 1:
-				CE.bmField=CEF_PROJECT_B0;					// Get a list of projects from the clice db
-				CEL.bmField=0;
-				CE.sProject[0]='\0';						// #TODO have to provide a key for a mandatory WHERE ... , but why?
-				ut_check(cef_main(FA_READ+FA_DISTINCT,
-							"ce.project > %") == FA_OK_IV0,
-								"Read projects");			// jump to error: if SQL prepare fails.
-				iHits[0]=0;
-				while (cef_main(FA_STEP, 0) == FA_OK_IV0)
-				  {
-					cpList[iHits[0]]=sList[iHits[0]][0];	// establish an array of pointers for nc_menu
-					snprintf(sList[iHits[0]][0],			//	and a list of known projects with any descriptions
-							CE_PROJECT_S0,
-							"%s",CE.sProject);
-					iHits[0]++;
-					if (iHits[0] == CE_LIST_M0)
-					  {
-						iHits[0]--;
-						nc_message("Too many projects - showing first page only");
-						sleep(2);
-						break;
-					  }
-				  }
-
-				if (iHits[0] == 0)							// no projects found in clice db
-				  {
-					nc_message("No projects found");
-					sleep(2);
-				  }
-				else
-				  {
-					cpList[iHits[0]]=(char *) NULL;			// mark end of projects list
-
-					for (i=0; i < iHits[0]; i++)			// check for any project descriptions to add to menu
-					  {
-						CE.bmField=CEF_DESC_B0;
-						CEL.bmField=0;
-						CE.iType=CE_PROJ_T0;
-						snprintf(CE.sProject,
-							CE_PROJECT_S0,
-							"%s", sList[i][0]);
-						if (cef_main(FA_READ+FA_STEP,
-								"ce.type = % AND ce.project = %") == FA_OK_IV0)
-							snprintf(sList[i][0],
-								CE_DESC_S0,
-								"%s   %s",
-								CE.sProject, CE.sDesc);
-					  }
-
-					iPos=(iHits[0] == 1) ? 1 :
-						nc_menu(cpTitle+CE_SELECT_TITLE_P0,
-								cpList);					// display project list until selection or quit requested
-
-					if (iPos != NC_QUIT)
-					  {
-						CE.iType=CE_PROJ_T0;				// setup to read the project's details
-						for (i=0; i < CE_PROJECT_S0 &&
-								sList[iPos-1][0][i] > ' '; i++)
-							CE.sProject[i]=sList[iPos-1][0][i];
-						CE.sProject[i]='\0';
-
-						cpDisp[0]=sDisp[0];					// Display project details
-						snprintf(sDisp[0], sizeof(sDisp[0]), "Project:%s", cpList[iPos-1]);
-
-						cpDisp[1]=(char *) NULL;			// mark end of display
-
-						while ((iOpt=nc_menu(cpDisp,
-									cpMenu+CE_PROJECTS_MENU_P0)) != NC_QUIT)	// display and manage menu until requested to quit
-						  {
-							switch (iOpt)					// then check for menu selection actions
-							  {
-								case 1:
-//									ce_make_all();
-									break;
-								case 2:
-//									ce_make_install();
-									break;
-							  }
-						  }
-					  }
-				  }
+				ce_clice_project();
 				break;
 			case 2:
 			case 3:
@@ -214,11 +237,9 @@ int main(int argc, char **argv)
 				  {
 					cpList[iHits[0]]=(char *) NULL;		// mark end of search results list
 
-					iPos=(iHits[0] == 1) ? 1 :
+					iOpt=iPos=(iHits[0] == 1) ? 1 :
 						nc_menu(cpTitle+CE_SELECT_TITLE_P0,
 								cpList);					// display search results until selection or quit requested
-					if (iPos == NC_QUIT) iOpt=NC_QUIT;		// Pass on a quit request from the search results list
-
 					while (iOpt != NC_QUIT)
 					  {
 						CE.iNo=iList[iPos-1][0];			// Read more about the selected item
