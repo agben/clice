@@ -21,16 +21,9 @@
 #define CE_DISP_M0	5				// Lines in an item display
 #define CE_LIST_M0	50				// Max search results to display
 
-#define CE_PROG_TITLE_P0	2
-#define CE_SELECT_TITLE_P0	8
+#define CE_SELECT_TITLE_P0	2
 
 char *cpTitle[] =	{	"clice Menu",
-			(char *) NULL,
-						"Enter program name",
-			(char *) NULL,
-						"Enter header name",
-			(char *) NULL,
-						"Enter system routine name",
 			(char *) NULL,
 						"Select required entry",
 			(char *) NULL};
@@ -200,7 +193,7 @@ int main(int argc, char **argv)
 				nc_message("Use % for wildcard");
 
 				CE.iType=iOpt-1;					// set type of item required (program, header, ...)
-				i=nc_input(	cpTitle+(CE_PROG_TITLE_P0+((iOpt-2)*2)),
+				i=nc_input(	"Select required module",
 							CE.sName,
 							CE_NAME_S0-1);			// set name to look for in clice db (-1 to ensure room for trailing null)
 				i=strnlen(CE.sName, CE_NAME_S0-1);
