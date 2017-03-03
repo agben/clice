@@ -18,15 +18,8 @@
 #include <ut_error.h>	// error checking and debug macros
 
 
-#define CE_DISP_M0	5				// Lines in an item display
+#define CE_DISP_M0	3				// Lines in an item display
 #define CE_LIST_M0	50				// Max search results to display
-
-#define CE_SELECT_TITLE_P0	2
-
-char *cpTitle[] =	{	"clice Menu",
-			(char *) NULL,
-						"Select required entry",
-			(char *) NULL};
 
 #define CE_PROJECTS_MENU_P0	6		// offsets for each list of menu options
 #define CE_ACTIONS_MENU_P0	11
@@ -57,12 +50,10 @@ void ce_clice_project(void)
 	int	iOpt;					// selected menu option
 	int iPos;					// position within a search list
 	int iHits;					// number of hits found by each search
+	char sBuff[CE_DESC_S0+10];	// string buffer
 
     char sList[CE_LIST_M0][CE_PROJECT_S0+3+CE_DESC_S0];	// list of their names
     char *cpList[CE_LIST_M0];
-
-    char sDisp[CE_DISP_M0][CE_DESC_S0+10];	// bespoke menu/list for display
-    char *cpDisp[CE_DISP_M0];
 
 
 
@@ -114,7 +105,7 @@ void ce_clice_project(void)
 		  }
 
 		iOpt=iPos=(iHits == 1) ? 1 :
-			nc_menu(cpTitle+CE_SELECT_TITLE_P0,
+			nc_menu("Select required entry",
 					cpList);					// display project list until selection or quit requested
 		while (iOpt != NC_QUIT)
 		  {
@@ -124,12 +115,8 @@ void ce_clice_project(void)
 					CE.sProject[i]=sList[iPos-1][i];
 			CE.sProject[i]='\0';
 
-			cpDisp[0]=sDisp[0];					// Display project details
-			snprintf(sDisp[0], sizeof(sDisp[0]), "Project:%s", cpList[iPos-1]);
-
-			cpDisp[1]=(char *) NULL;			// mark end of display
-
-			iOpt=nc_menu(cpDisp, cpMenu+CE_PROJECTS_MENU_P0);
+			snprintf(sBuff, sizeof(sBuff), "Project:%s", cpList[iPos-1]);
+			iOpt=nc_menu(sBuff, cpMenu+CE_PROJECTS_MENU_P0);
 			switch (iOpt)
 			  {
 				case 1:							// Next item
@@ -168,9 +155,9 @@ int main(int argc, char **argv)
     int iList[CE_LIST_M0][2];					// list of selected clice db items
     char sList[CE_LIST_M0][2][CE_NAME_S0+20];	// list of their names
     char *cpList[CE_LIST_M0];
+	char sBuff[CE_DISP_M0*CE_DESC_S0];			// string buffer
+	char sType[20];								// type of module
 
-    char sDisp[CE_DISP_M0][CE_DESC_S0+10];	// bespoke menu/list for display
-    char *cpDisp[CE_DISP_M0];
 
 
 	if (ce_args(argc, argv) < 0) goto error;	// process any command arguments i.e. clice --version
@@ -179,7 +166,7 @@ int main(int argc, char **argv)
 			"Open ce_main.db");
 	nc_start();												// initialise libgxtnc and startup ncurses screen display
 
-	while ((iOpt=nc_menu(cpTitle,cpMenu)) != NC_QUIT)		// Display and manage menu until requested to quit
+	while ((iOpt=nc_menu("clice Menu",cpMenu)) != NC_QUIT)	// Display and manage menu until requested to quit
 	  {
 		switch (iOpt)										// then check for menu selection actions
 		  {
@@ -231,7 +218,7 @@ int main(int argc, char **argv)
 					cpList[iHits[0]]=(char *) NULL;		// mark end of search results list
 
 					iOpt=iPos=(iHits[0] == 1) ? 1 :
-						nc_menu(cpTitle+CE_SELECT_TITLE_P0,
+						nc_menu("Select required entry",
 								cpList);					// display search results until selection or quit requested
 					while (iOpt != NC_QUIT)
 					  {
@@ -242,60 +229,50 @@ int main(int argc, char **argv)
 						ut_check(	cef_main(FA_READ+FA_STEP, 0) == FA_OK_IV0,		// prepare a select for selected item
 									"Read key0");							// jump to error: if SQL prepare fails.
 
-		// #TODO there must be a neater way rather than set these cpDisp pointers for each sDisp line?
-		//		Probably by having the display list terminated by a null rather than a pointer to null?
-//						cpDisp[0]=sDisp[0];					// establish an array of pointers for nc_menu
-//						sprintf(sDisp[0]," ");
-
 						switch (CE.iType)					// display item type
 						  {
 							case CE_PROG_T0:
 							case CE_HEAD_T0:
 								if (CE.cLang == 'S')
 								  {
-									sprintf(sDisp[2],"Shell script");
+									sprintf(sType,"Shell script");
 									break;
 								  }
 								if (CE.cLang == 'C' || CE.cLang == 'H')
-									sDisp[2][0] = 'C';
+									sType[0] = 'C';
 								if (CE.iType == CE_PROG_T0)
-									sprintf(&sDisp[2][1]," program");
+									sprintf(&sType[1]," program");
 								else if (CE.iType == CE_HEAD_T0)
-									sprintf(&sDisp[2][1]," header");
+									sprintf(&sType[1]," header");
 								else
-									sprintf(&sDisp[2][1]," unknown");
+									sprintf(&sType[1]," unknown");
 								break;
 							case CE_SYSF_T0:
-								sprintf(&sDisp[2][0],"system function");
+								sprintf(&sType[0],"system function");
 								break;
 							case CE_SYSH_T0:
-								sprintf(&sDisp[2][0],"system header");
+								sprintf(&sType[0],"system header");
 								break;
 							default:
-								sprintf(sDisp[2],"?? %c",CE.cLang);
+								sprintf(sType,"?? %c",CE.cLang);
 						  }
-						cpDisp[0]=sDisp[0];
+
 						for (i=0; sList[iPos-1][0][i] > ' ' && i < CE_NAME_S0; i++);	//Find length of item name
-						snprintf(sDisp[0], sizeof(sDisp[0]), "Name=%-*.*s    (%s)",
+						j=snprintf(sBuff, sizeof(sBuff), "%-*.*s    (%s)\n",
 								i, i,
 								sList[iPos-1][0],
-								sDisp[2]);
+								sType);
 
-						cpDisp[1]=sDisp[1];
 						if (CE.iType < CE_SYSF_T0)				// local function/header?
-							snprintf(sDisp[1], sizeof(sDisp[0]), "%s", CE.sDesc);
-						else
-							sDisp[1][0]='\0';
+							j+=snprintf(&sBuff[j], sizeof(sBuff)-j, "%s", CE.sDesc);
+						sBuff[j++]='\n';
 
-						cpDisp[2]=sDisp[2];
 						if (CE.iType > CE_HEAD_T0 || CE.cLang == 'H' || CE.cLang == 'S')
-							sDisp[2][0]='\0';		// no example code to display for header or script files
+							sBuff[j++]='\0';		// no example code to display for header or script files
 						else
-							snprintf(sDisp[2], sizeof(sDisp[0]), "%s", CE.sCode);
+							j+=snprintf(&sBuff[j], sizeof(sBuff)-j, "%s", CE.sCode);
 
-						cpDisp[3]=(char *) NULL;	// mark end of display
-
-						iOpt=nc_menu(	cpDisp,
+						iOpt=nc_menu(	sBuff,
 										cpMenu+CE_ACTIONS_MENU_P0);
 
 						switch (iOpt)				// then check for menu selection actions
@@ -411,7 +388,7 @@ int main(int argc, char **argv)
 										  }
 									  }
 
-									iPick=nc_menu(	cpTitle+CE_SELECT_TITLE_P0,
+									iPick=nc_menu("Select required entry",
 													cpList);					// display search results until selection or quit requested
 									if (iPick != NC_QUIT)						// Switch master search list with our proposed list
 									  {
@@ -466,7 +443,7 @@ int main(int argc, char **argv)
 							case NC_QUIT:					// Quit item display
 								if (iHits[0] > 1)			// if only 1 hit then quit to main menu else
 								  {
-									iPos=nc_menu(	cpTitle+CE_SELECT_TITLE_P0,
+									iPos=nc_menu("Select required entry",
 													cpList);		// display search results until selection or quit request
 									if (iPos != NC_QUIT) iOpt=1;	// Pass on a quit request from the search results list
 //#TODO if returning to the search results list then it would be nice to retain our current position rather than return to the top
