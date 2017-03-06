@@ -1,6 +1,6 @@
 //--------------------------------------------------------------
 //
-//	clice - command line coding environment (CE) management menu
+//	clice - the command line coding ecosystem
 //
 //	usage:	./ce_clice	or define as the command 'clice'
 //
@@ -43,6 +43,11 @@ char *cpMenu[] =	{	"1) My Projects",
 						"!7) Make",
 			(char *) NULL};
 
+//--------------------------------------------------------------
+//
+//	Manage projects with clice
+//
+//--------------------------------------------------------------
 
 void ce_clice_project(void)
   {
@@ -138,12 +143,18 @@ error:;
   };
 
 
-int main(int argc, char **argv)
+//--------------------------------------------------------------
+//
+//	Manage modules (programs & headers) with clice
+//
+//--------------------------------------------------------------
+
+void ce_clice_module(void)
   {
 	int	i, j;
 	char *cp;
 	int	ios;					// io status
-	int	iOpt;					// selected menu option
+	int	iOpt = -1;				// selected menu option
 	int	iPick;					// selected list option
 	int iPos;					// position within a search list
 
@@ -160,252 +171,229 @@ int main(int argc, char **argv)
 
 
 
-	if (ce_args(argc, argv) < 0) goto error;	// process any command arguments i.e. clice --version
+	nc_message("Use % for wildcard");
 
-	ut_check(cef_main(FA_INIT+FA_OPEN, 0) == 0,				// initialise libgxtfa and open clice database
-			"Open ce_main.db");
-	nc_start();												// initialise libgxtnc and startup ncurses screen display
+	i=nc_input(	"Select required module",
+				CE.sName,
+				CE_NAME_S0-1);					// set name to look for in clice db (-1 to ensure room for trailing null)
+	i=strnlen(CE.sName, CE_NAME_S0-1);
+	if (i < CE_NAME_S0-1) CE.sName[i++]='%';	// if room add a default wildcard
+	CE.sName[i]='\0';
 
-	while ((iOpt=nc_menu("clice Menu",cpMenu)) != NC_QUIT)	// Display and manage menu until requested to quit
+	CE.bmField=CEF_ID_B0+CEF_NAME_B0;			// What to read from the ce database
+	CEL.bmField=0;
+	ut_check(cef_main(FA_READ+FA_KEY5,
+						0) == FA_OK_IV0,		// prepare a select of all matching entries
+					"Read key5");				// jump to error: if SQL prepare fails.
+	iHits[0]=0;
+	while (cef_main(FA_STEP, 0) == FA_OK_IV0)
 	  {
-		switch (iOpt)										// then check for menu selection actions
+		cpList[iHits[0]]=sList[iHits[0]][0];	// establish an array of pointers for nc_menu
+		iList[iHits[0]][0]=CE.iNo;
+		sprintf(sList[iHits[0]++][0],"%s",CE.sName);	// pointers to the name of each matching record
+
+		if (iHits[0] == CE_LIST_M0)
 		  {
-			case 1:
-				ce_clice_project();
-				break;
-			case 2:
-			case 3:
-			case 4:
-			case 5:
-				nc_message("Use % for wildcard");
+			iHits[0]--;
+			nc_message("Too many matches - showing first page only");
+			sleep(2);
+			break;
+		  }
+	  }
 
-				CE.iType=iOpt-1;					// set type of item required (program, header, ...)
-				i=nc_input(	"Select required module",
-							CE.sName,
-							CE_NAME_S0-1);			// set name to look for in clice db (-1 to ensure room for trailing null)
-				i=strnlen(CE.sName, CE_NAME_S0-1);
-				if (i < CE_NAME_S0-1)
-					CE.sName[i++]='%';				// if room add a default wildcard
-				CE.sName[i]='\0';
+	if (iHits[0] == 0)							// no matches in clice database
+	  {
+		nc_message("No matches found");
+		sleep(2);
+	  }
+	else
+	  {
+		cpList[iHits[0]]=(char *) NULL;			// mark end of search results list
 
-				CE.bmField=CEF_ID_B0+CEF_NAME_B0;	// What to read from the ce database
-				CEL.bmField=0;
-				ut_check(cef_main(FA_READ+FA_KEY5, 0) == FA_OK_IV0,	// prepare a select of all matching entries
-								"Read key5");						// jump to error: if SQL prepare fails.
-				iHits[0]=0;
-				while (cef_main(FA_STEP, 0) == FA_OK_IV0)
-				  {
-					cpList[iHits[0]]=sList[iHits[0]][0];	// establish an array of pointers for nc_menu - #TODO must be a better way?
-					iList[iHits[0]][0]=CE.iNo;
-					sprintf(sList[iHits[0]++][0],"%s",CE.sName);	// pointers to the name of each matching record
+		iOpt=iPos=(iHits[0] == 1) ? 1 :
+			nc_menu("Select required entry",
+					cpList);					// display search results until selection or quit requested
+		while (iOpt != NC_QUIT)
+		  {
+			CE.iNo=iList[iPos-1][0];			// Read more about the selected item
+			CE.bmField=CEF_DESC_B0+CEF_LANG_B0+
+					CEF_CODE_B0+CEF_TYPE_B0;	// What to read from the ce database
+			CEL.bmField=0;
+			ut_check(cef_main(FA_READ+FA_STEP,
+							0) == FA_OK_IV0,	// prepare a select for selected item
+						"Read key0");			// jump to error: if SQL prepare fails.
 
-					if (iHits[0] == CE_LIST_M0)
+			switch (CE.iType)					// display item type
+			  {
+				case CE_PROG_T0:
+				case CE_HEAD_T0:
+					if (CE.cLang == 'S')
 					  {
-						iHits[0]--;
-						nc_message("Too many matches - showing first page only");
-						sleep(2);
+						sprintf(sType,"Shell script");
 						break;
 					  }
-				  }
+					if (CE.cLang == 'C' || CE.cLang == 'H')
+						sType[0] = 'C';
+					if (CE.iType == CE_PROG_T0)
+						sprintf(&sType[1]," program");
+					else if (CE.iType == CE_HEAD_T0)
+						sprintf(&sType[1]," header");
+					else
+						sprintf(&sType[1]," unknown");
+					break;
+				case CE_SYSF_T0:
+					sprintf(&sType[0],"system function");
+					break;
+				case CE_SYSH_T0:
+					sprintf(&sType[0],"system header");
+					break;
+				default:
+					sprintf(sType,"?? %c",CE.cLang);
+			  }
 
-				if (iHits[0] == 0)							// no matches in clice database
-				  {
-					nc_message("No matches found");
-					sleep(2);
-				  }
-				else
-				  {
-					cpList[iHits[0]]=(char *) NULL;		// mark end of search results list
+			for (i=0; sList[iPos-1][0][i] > ' ' && i < CE_NAME_S0; i++);	//Find length of item name
+			j=snprintf(sBuff, sizeof(sBuff), "%-*.*s    (%s)\n",
+					i, i,
+					sList[iPos-1][0],
+					sType);
 
-					iOpt=iPos=(iHits[0] == 1) ? 1 :
-						nc_menu("Select required entry",
-								cpList);					// display search results until selection or quit requested
-					while (iOpt != NC_QUIT)
+			if (CE.iType < CE_SYSF_T0)			// local function/header?
+				j+=snprintf(&sBuff[j], sizeof(sBuff)-j, "%s", CE.sDesc);
+			sBuff[j++]='\n';
+
+			if (CE.iType > CE_HEAD_T0 || CE.cLang == 'H' || CE.cLang == 'S')
+				sBuff[j++]='\0';				// no example code to display for header or script files
+			else
+				j+=snprintf(&sBuff[j], sizeof(sBuff)-j, "%s", CE.sCode);
+			iOpt=nc_menu(sBuff, cpMenu+CE_ACTIONS_MENU_P0);
+			switch (iOpt)						// then check for menu selection actions
+			  {
+				case 1:							// Next item
+					if (iPos < iHits[0]) iPos++;
+					break;
+
+				case 2:							// Previous item
+					if (iPos-1 > 0) iPos--;
+					break;
+
+				case 3:							// Calls to
+				case 4:							// Called from
+					CE.bmField=0;				// need link details not module details
+					if (iOpt == 3)
 					  {
-						CE.iNo=iList[iPos-1][0];			// Read more about the selected item
-						CE.bmField=CEF_DESC_B0+CEF_LANG_B0+
-									CEF_CODE_B0+CEF_TYPE_B0;	// What to read from the ce database
-						CEL.bmField=0;
-						ut_check(	cef_main(FA_READ+FA_STEP, 0) == FA_OK_IV0,		// prepare a select for selected item
-									"Read key0");							// jump to error: if SQL prepare fails.
+						CEL.iNtype=CE.iType;	// type of current item
+						for (i=0; sList[iPos-1][0][i] > ' '; i++)
+							CEL.sName[i]=sList[iPos-1][0][i];
+						CEL.sName[i]='\0';
+						CEL.bmField=CEF_LINK_CALLS_B0+CEF_LINK_CTYPE_B0;	// read list of items linked from this one
+						ut_check(cef_main(FA_READ,
+							"cl.name = % AND cl.ntype = % ORDER BY cl.calls ASC") == FA_OK_IV0,	// prepare a select of all modules linked
+							"Read links to");			// to or jump to error: if fails.
+					  }
+					else
+					  {
+						CEL.iCtype=CE.iType;			// type of current item
+						for (i=0; sList[iPos-1][0][i] > ' '; i++)
+							CEL.sCalls[i]=sList[iPos-1][0][i];
+						CEL.sCalls[i]='\0';
+						CEL.bmField=CEF_LINK_NAME_B0+CEF_LINK_NTYPE_B0;		// read list of items that link to this one
+						ut_check(cef_main(FA_READ,
+							"cl.calls = % AND cl.ctype = % ORDER BY cl.name ASC") == FA_OK_IV0,	// prepare a select of all modules linked
+							"Read links from");			// from or jump to error: if fails.
+					  }
 
-						switch (CE.iType)					// display item type
+					int iLen=0;							// Find longest name in list
+					iHits[1]=0;
+					while (cef_main(FA_STEP, 0) == FA_OK_IV0)
+					  {
+						cpList[iHits[1]]=sList[iHits[1]][1];	// establish an array of pointers for nc_menu - #TODO must be a better way?
+						if (iOpt == 3)							// called modules
 						  {
-							case CE_PROG_T0:
-							case CE_HEAD_T0:
-								if (CE.cLang == 'S')
-								  {
-									sprintf(sType,"Shell script");
-									break;
-								  }
-								if (CE.cLang == 'C' || CE.cLang == 'H')
-									sType[0] = 'C';
-								if (CE.iType == CE_PROG_T0)
-									sprintf(&sType[1]," program");
-								else if (CE.iType == CE_HEAD_T0)
-									sprintf(&sType[1]," header");
-								else
-									sprintf(&sType[1]," unknown");
-								break;
-							case CE_SYSF_T0:
-								sprintf(&sType[0],"system function");
-								break;
-							case CE_SYSH_T0:
-								sprintf(&sType[0],"system header");
-								break;
-							default:
-								sprintf(sType,"?? %c",CE.cLang);
+							cp=CEL.sCalls;
+							i=CEL.iCtype;
+						  }
+						else									// calling modules
+						  {
+							cp=CEL.sName;
+							i=CEL.iNtype;
+						  }
+							sprintf(sList[iHits[1]][1], "%-*s   %s",
+								CE_NAME_S0,
+								cp,
+								(i == CE_PROG_T0) ?	"function":
+								(i == CE_HEAD_T0) ?	"header":
+								(i == CE_SYSF_T0) ?	"system function":
+								(i == CE_SYSH_T0) ?	"system Header":
+													"unknown");
+						j=strnlen(cp, CE_NAME_S0);
+						if (j > iLen) iLen=j;			// check if this is the longest name?
+
+						iList[iHits[1]++][1]=0;			// Will determine if each called item exists in clice later
+						if (iHits[1] == CE_LIST_M0)		//#TODO need to handle large lists better - this will keep pausing
+						  {
+							iHits[1]--;
+							nc_message("Too many matches - showing first page only");
+							sleep(2);
+							break;
+						  }
+					  }
+
+					if (iHits[1] == 0)					// no matches in clice database
+					  {
+						if (iOpt == 3)
+							nc_message("No linked items found in clice");
+						else
+							nc_message("Not linked from anything in clice");
+						sleep(2);			// iList[][0], sList[][0], iPos and iHits[0] are preserved so just continue.
+					  }
+					else
+					  {
+						cpList[iHits[1]]=(char *) NULL;	// mark end of search results list
+						iLen+=3;						// allow this many spaces between name and type in the list
+
+						for (i=0; i < iHits[1]; i++)
+						  {
+							for(j=0; sList[i][1][j] > ' '; j++)
+								CE.sName[j]=sList[i][1][j];
+							CE.sName[j]='\0';			// extract item name and null terminate
+
+							for (j=iLen; sList[i][1][j] != '\0'; j++)
+								sList[i][1][j]=sList[i][1][j+(CE_NAME_S0-iLen)];	// reduce blank space in output list
+
+							CE.bmField=CEF_ID_B0;		// See which called modules exist in clice
+							CEL.bmField=0;
+							ut_check(cef_main(FA_READ+FA_KEY1,		// #TODO should read by name + type
+												0) == FA_OK_IV0,	// prepare a select for selected item
+									"Read key1");		// jump to error: if SQL prepare fails.
+
+							if (cef_main(FA_STEP,0) == FA_OK_IV0)
+								iList[i][1]=CE.iNo;
+							else						// Mark module as unknown in clice by inserting a ! marker
+							  {
+								sList[i][1][sizeof(sList[0][0])-1]='\0';	// ensure null termination of string
+								for(j=sizeof(sList[0][0])-2; j > 0; j--)
+									sList[i][1][j]=sList[i][1][j-1];
+								sList[i][1][0]='!';
+							  }
 						  }
 
-						for (i=0; sList[iPos-1][0][i] > ' ' && i < CE_NAME_S0; i++);	//Find length of item name
-						j=snprintf(sBuff, sizeof(sBuff), "%-*.*s    (%s)\n",
-								i, i,
-								sList[iPos-1][0],
-								sType);
-
-						if (CE.iType < CE_SYSF_T0)				// local function/header?
-							j+=snprintf(&sBuff[j], sizeof(sBuff)-j, "%s", CE.sDesc);
-						sBuff[j++]='\n';
-
-						if (CE.iType > CE_HEAD_T0 || CE.cLang == 'H' || CE.cLang == 'S')
-							sBuff[j++]='\0';		// no example code to display for header or script files
-						else
-							j+=snprintf(&sBuff[j], sizeof(sBuff)-j, "%s", CE.sCode);
-
-						iOpt=nc_menu(	sBuff,
-										cpMenu+CE_ACTIONS_MENU_P0);
-
-						switch (iOpt)				// then check for menu selection actions
+						iPick=nc_menu("Select required entry",
+										cpList);					// display search results until selection or quit requested
+						if (iPick != NC_QUIT)						// Switch master search list with our proposed list
 						  {
-							case 1:					// Next item
-								if (iPos < iHits[0]) iPos++;
-								break;
-
-							case 2:					// Previous item
-								if (iPos-1 > 0) iPos--;
-								break;
-
-							case 3:					// Calls to
-							case 4:					// Called from
-								CE.bmField=0;		// need link details not module details
-								if (iOpt == 3)
+							iHits[0]=0;
+							for (i=0; i < iHits[1]; i++)
+							  {
+								if (sList[i][1][0] != '!')		// pick only the entries that are recorded in the clice db
 								  {
-									CEL.iNtype=CE.iType;	// type of current item
-									for (i=0; sList[iPos-1][0][i] > ' '; i++)
-										CEL.sName[i]=sList[iPos-1][0][i];
-									CEL.sName[i]='\0';
-									CEL.bmField=CEF_LINK_CALLS_B0+CEF_LINK_CTYPE_B0;	// read list of items linked from this one
-									ut_check(cef_main(FA_READ,
-										"cl.name = % AND cl.ntype = % ORDER BY cl.calls ASC") == FA_OK_IV0,	// prepare a select of all modules linked
-										"Read links to");									// to or jump to error: if fails.
+									iList[iHits[0]][0]=iList[i][1];
+									memcpy(	sList[iHits[0]][0],
+											sList[i][1],
+											sizeof(sList[0][0]));
+									iHits[0]++;
+									if (i == iPick-1) iPos=iHits[0];	// position of selected item within the new (clice db entries only) list
 								  }
-								else
-								  {
-									CEL.iCtype=CE.iType;	// type of current item
-									for (i=0; sList[iPos-1][0][i] > ' '; i++)
-										CEL.sCalls[i]=sList[iPos-1][0][i];
-									CEL.sCalls[i]='\0';
-									CEL.bmField=CEF_LINK_NAME_B0+CEF_LINK_NTYPE_B0;		// read list of items that link to this one
-									ut_check(cef_main(FA_READ,
-										"cl.calls = % AND cl.ctype = % ORDER BY cl.name ASC") == FA_OK_IV0,	// prepare a select of all modules linked
-										"Read links from");									// from or jump to error: if fails.
-								  }
-
-								int iLen=0;										// Find longest name in list
-								iHits[1]=0;
-								while (cef_main(FA_STEP, 0) == FA_OK_IV0)
-								  {
-									cpList[iHits[1]]=sList[iHits[1]][1];	// establish an array of pointers for nc_menu - #TODO must be a better way?
-									if (iOpt == 3)							// called modules
-									  {
-										cp=CEL.sCalls;
-										i=CEL.iCtype;
-									  }
-									else									// calling modules
-									  {
-										cp=CEL.sName;
-										i=CEL.iNtype;
-									  }
-
-									sprintf(sList[iHits[1]][1], "%-*s   %s",
-											CE_NAME_S0,
-											cp,
-											(i == CE_PROG_T0) ?	"function":
-											(i == CE_HEAD_T0) ?	"header":
-											(i == CE_SYSF_T0) ?	"system function":
-											(i == CE_SYSH_T0) ?	"system Header":
-																"unknown");
-									j=strnlen(cp, CE_NAME_S0);
-									if (j > iLen) iLen=j;			// check if this is the longest name?
-
-
-									iList[iHits[1]++][1]=0;			// Will determine if each called item exists in clice later
-									if (iHits[1] == CE_LIST_M0)		//#TODO need to handle large lists better - this will keep pausing
-									  {
-										iHits[1]--;
-										nc_message("Too many matches - showing first page only");
-										sleep(2);
-										break;
-									  }
-								  }
-
-								if (iHits[1] == 0)					// no matches in clice database
-								  {
-									if (iOpt == 3)
-										nc_message("No linked items found in clice");
-									else
-										nc_message("Not linked from anything in clice");
-									sleep(2);			// iList[][0], sList[][0], iPos and iHits[0] are preserved so just continue.
-								  }
-								else
-								  {
-									cpList[iHits[1]]=(char *) NULL;	// mark end of search results list
-									iLen+=3;						// allow this many spaces between name and type in the list
-
-									for (i=0; i < iHits[1]; i++)
-									  {
-										for(j=0; sList[i][1][j] > ' '; j++)
-											CE.sName[j]=sList[i][1][j];
-										CE.sName[j]='\0';			// extract item name and null terminate
-
-										for (j=iLen; sList[i][1][j] != '\0'; j++)
-											sList[i][1][j]=sList[i][1][j+(CE_NAME_S0-iLen)];	// reduce blank space in output list
-
-										CE.bmField=CEF_ID_B0;		// See which called modules exist in clice
-										CEL.bmField=0;
-										ut_check(cef_main(FA_READ+FA_KEY1,		// #TODO should read by name + type
-															0) == FA_OK_IV0,	// prepare a select for selected item
-												"Read key1");		// jump to error: if SQL prepare fails.
-
-										if (cef_main(FA_STEP,0) == FA_OK_IV0)
-											iList[i][1]=CE.iNo;
-										else						// Mark module as unknown in clice by inserting a ! marker
-										  {
-											sList[i][1][sizeof(sList[0][0])-1]='\0';	// ensure null termination of string
-											for(j=sizeof(sList[0][0])-2; j > 0; j--)
-												sList[i][1][j]=sList[i][1][j-1];
-											sList[i][1][0]='!';
-										  }
-									  }
-
-									iPick=nc_menu("Select required entry",
-													cpList);					// display search results until selection or quit requested
-									if (iPick != NC_QUIT)						// Switch master search list with our proposed list
-									  {
-										iHits[0]=0;
-										for (i=0; i < iHits[1]; i++)
-										  {
-											if (sList[i][1][0] != '!')		// pick only the entries that are recorded in the clice db
-											  {
-												iList[iHits[0]][0]=iList[i][1];
-												memcpy(	sList[iHits[0]][0],
-														sList[i][1],
-														sizeof(sList[0][0]));
-												iHits[0]++;
-												if (i == iPick-1) iPos=iHits[0];	// position of selected item within the new (clice db entries only) list
-											  }
-										  }
-
+							  }
 //										iPos=i;
 //										iHits[0]=iHits[1];
 //										for (i=0; i<iHits[0]; i++)
@@ -415,43 +403,94 @@ int main(int argc, char **argv)
 //													sList[i][1],
 //													CE_NAME_S0);
 //										  }
-									  }
-								  }
-								break;
-
-							case 6:					// Remove an item and all it's links from the clice db
-
-								CE.bmField=CEF_ID_B0;
-								CEL.bmField=0;
-								ios=cef_main(FA_DELETE, 0);					// 1st delete main clice db row for this id
-								ut_check(ios == FA_OK_IV0, "Delete main %d", ios);
-
-								CE.bmField=0;
-								CEL.bmField=CEF_LINK_CALLS_B0;
-								memcpy(CEL.sName,sList[iPos-1][0],CE_NAME_S0);
-								memcpy(CEL.sCalls, CEL.sName, CE_NAME_S0);
-								ios=cef_main(FA_DELETE, "cl.name = % OR cl.calls = %");		// 2nd delete all links to+from this item
-								ut_check(ios == FA_OK_IV0, "Delete links %d", ios);
-
-								nc_message("Item has been removed from the clice db");
-								sleep(2);
-
-								iOpt=NC_QUIT;				// change action to ensure menus behave
-
-								break;
-
-							case NC_QUIT:					// Quit item display
-								if (iHits[0] > 1)			// if only 1 hit then quit to main menu else
-								  {
-									iPos=nc_menu("Select required entry",
-													cpList);		// display search results until selection or quit request
-									if (iPos != NC_QUIT) iOpt=1;	// Pass on a quit request from the search results list
-//#TODO if returning to the search results list then it would be nice to retain our current position rather than return to the top
-								  }
-								break;
 						  }
 					  }
-				  }
+					break;
+
+				case 6:					// Remove an item and all it's links from the clice db
+
+					CE.bmField=CEF_ID_B0;
+					CEL.bmField=0;
+					ios=cef_main(FA_DELETE, 0);					// 1st delete main clice db row for this id
+					ut_check(ios == FA_OK_IV0, "Delete main %d", ios);
+
+					CE.bmField=0;
+					CEL.bmField=CEF_LINK_CALLS_B0;
+					memcpy(CEL.sName,sList[iPos-1][0],CE_NAME_S0);
+					memcpy(CEL.sCalls, CEL.sName, CE_NAME_S0);
+					ios=cef_main(FA_DELETE, "cl.name = % OR cl.calls = %");		// 2nd delete all links to+from this item
+					ut_check(ios == FA_OK_IV0, "Delete links %d", ios);
+
+					nc_message("Item has been removed from the clice db");
+					sleep(2);
+
+					iOpt=NC_QUIT;				// change action to ensure menus behave
+
+					break;
+
+				case NC_QUIT:					// Quit item display
+					if (iHits[0] > 1)			// if only 1 hit then quit to main menu else
+					  {
+						iPos=nc_menu("Select required entry",
+										cpList);		// display search results until selection or quit request
+						if (iPos != NC_QUIT) iOpt=1;	// Pass on a quit request from the search results list
+//#TODO if returning to the search results list then it would be nice to retain our current position rather than return to the top
+					  }
+					break;
+			  }
+		  }
+	  }
+
+error:;
+  };
+
+
+//--------------------------------------------------------------
+//
+//	clice - command line coding ecosystem management menu
+//
+//--------------------------------------------------------------
+
+int main(int argc, char **argv)
+  {
+	int	i;
+	int	iOpt = -1;				// selected menu option
+
+	char cMenu[CE_SYSH_T0+1][30];	// currently one menu item per module type with system headers the last (SYSH)
+    char *cpList[CE_SYSH_T0+2];		// +2 to allow for a null pointer to terminate the menu list
+
+
+	if (ce_args(argc, argv) < 0) goto error;	// process any command arguments i.e. clice --version
+
+	ut_check(cef_main(FA_INIT+FA_OPEN, 0) == 0,
+			"Open ce_main.db");					// initialise libgxtfa and open clice database
+
+	nc_start();									// initialise libgxtnc and startup ncurses screen display
+
+	while (iOpt != NC_QUIT)						// Display and manage menu until requested to quit
+	  {
+		for (CE.iType=CE_PROJ_T0; CE.iType <= CE_SYSH_T0; CE.iType++)
+		  {
+			cef_main(FA_COUNT, "ce.type = %");	// Create menu with up to date counts of module types
+			i=0;
+			if (CE.iCount <= 0) cMenu[CE.iType][i++]='!';	// No items so disable this option
+			i+=sprintf (&cMenu[CE.iType][i], "%s", *(cpMenu+CE.iType));
+			if (CE.iCount > 0) sprintf (&cMenu[CE.iType][i], " [%d]", CE.iCount);
+			cpList[CE.iType]=cMenu[CE.iType];
+		  }
+		cpList[CE.iType]=NULL;
+
+		switch ((iOpt=nc_menu("clice Menu",cpList)))
+		  {
+			case 1:
+				ce_clice_project();
+				break;
+			case 2:
+			case 3:
+			case 4:
+			case 5:
+				CE.iType=iOpt-1;			// set type of item required (program, header, ...)
+				ce_clice_module();
 				break;
 		  }
 	  }

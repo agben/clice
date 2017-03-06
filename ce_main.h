@@ -30,6 +30,7 @@ int		ce_args(int, char**);		// parse clice command-line arguments
 #define CEF_CODE_B0		0x00001000	// Coding example
 #define CEF_LANG_B0		0x00002000	// Language code - 'C', 'F'ortran
 #define CEF_SIZE_B0		0x00004000	// Object size
+#define CEF_COUNT_B0	0x00008000	// Counter field
 
 					// The following are common combinations of fields - usually read or updated together
 #define CEF_LAST_COMP_B0	(CEF_CDATE_B0 +	CEF_CTIME_B0)
@@ -69,6 +70,8 @@ struct CE_FIELDS
 	char	sDesc[CE_DESC_S0];			// Null terminated module description
 	char	sCode[CE_CODE_LINE_S0];		// Null terminated source code example
 	char	cLang;			// Language code - 'C', 'F'ortran
+							// --- Fields that are not stored in the db but managed by the filehandler
+	char	iCount;			// result of any SELECT COUNTS
   } CE, *spCE;
 
 

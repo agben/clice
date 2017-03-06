@@ -47,7 +47,14 @@ int cef_main(int bmAction, char *cpSQL)
 	int	iType[CE_MODULE_LINK_M0];					// list of module types
 
 
-	if (bmAction & FA_LINK)								// Record a link between two CE items
+	if (bmAction & FA_COUNT)							// Read a count of matching rows
+	  {
+		CET[CE_MAIN_TABLE_P0].bmField = CEF_COUNT_B0;	// All counts go to the same meta field
+		CET[CE_LINK_TABLE_P0].bmField = 0;
+		i=FA_COUNT+FA_READ+FA_STEP;
+		ios=fa_handler(i, &CEB, cpSQL);
+	  }
+	else if (bmAction & FA_LINK)						// Record a link between two CE items
 	  {
 		CE.bmField=0;									// Override any field flags to establish this link
 		CEL.bmField=CEF_LINK_ID_B0;						// Just get the ID to confirm if this link already exists

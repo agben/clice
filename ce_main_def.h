@@ -24,13 +24,13 @@
 
 #define	CE_KEY_M0		5		// Number of keys defined for the SQL generator
 
-#define	CE_FIELD_M0		15		// max number of int + blob fields
+#define	CE_FIELD_M0		16		// max number of int + blob fields
 
 
 struct fa_sql_column CEF[CE_TABLE_M0][CE_FIELD_M0] =	//Declare the columns used in each table
   {
 	{//name		column flags	where to extract SQL data to	max size of column data
-	{"id",	(	FA_COL_INT_B0+
+	{"id",	   (FA_COL_INT_B0+
 				FA_COL_PRIME_B0+
 				FA_COL_AUTO_B0),	(char*)&CE.iNo,			FA_FIELD_INT_S0},
 	{"name",	FA_COL_BLOB_B0,		(char*)&CE.sName,		CE_NAME_S0},
@@ -46,7 +46,9 @@ struct fa_sql_column CEF[CE_TABLE_M0][CE_FIELD_M0] =	//Declare the columns used 
 	{"desc",	FA_COL_BLOB_B0,		(char*)&CE.sDesc,		CE_DESC_S0},
 	{"code",	FA_COL_BLOB_B0,		(char*)&CE.sCode,		CE_CODE_LINE_S0},
 	{"lang",	FA_COL_CHAR_B0,		(char*)&CE.cLang,		FA_FIELD_CHAR_S0},
-	{"size",	FA_COL_INT_B0,		(char*)&CE.iSize,		FA_FIELD_INT_S0}
+	{"size",	FA_COL_INT_B0,		(char*)&CE.iSize,		FA_FIELD_INT_S0},
+	{"icount", (FA_COL_INT_B0+
+				FA_COL_AUTO_B0),	(char*)&CE.iCount,		FA_FIELD_INT_S0}
 	},
 	{//name		column flags	where to extract SQL data to	max size of column data
 	{"id",	(	FA_COL_INT_B0+
