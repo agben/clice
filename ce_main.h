@@ -71,7 +71,7 @@ struct CE_FIELDS
 	char	sCode[CE_CODE_LINE_S0];		// Null terminated source code example
 	char	cLang;			// Language code - 'C', 'F'ortran
 							// --- Fields that are not stored in the db but managed by the filehandler
-	char	iCount;			// result of any SELECT COUNTS
+	int		iCount;			// result of any SELECT COUNTS
   } CE, *spCE;
 
 
@@ -85,6 +85,7 @@ struct CE_FIELDS
 #define CEF_LINK_CTYPE_B0	0x00000010	// Type of item that Calls refers to
 #define CEF_LINK_CODE_B0	0x00000020	// Source code line where relationship link is made
 #define CEF_LINK_TIME_B0	0x00000040	// Time stamp for updating links
+#define CEF_LINK_COUNT_B0	0x00000080	// Counter field
 
 struct CEL_FIELDS
   {

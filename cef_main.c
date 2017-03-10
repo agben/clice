@@ -49,8 +49,10 @@ int cef_main(int bmAction, char *cpSQL)
 
 	if (bmAction & FA_COUNT)							// Read a count of matching rows
 	  {
-		CET[CE_MAIN_TABLE_P0].bmField = CEF_COUNT_B0;	// All counts go to the same meta field
-		CET[CE_LINK_TABLE_P0].bmField = 0;
+		CET[CE_MAIN_TABLE_P0].bmField = CE.bmField;		// In this example database columns match the CE and CEL structures used in
+		CET[CE_LINK_TABLE_P0].bmField = CEL.bmField;	//	clice so no conversions are required.
+//		CET[CE_MAIN_TABLE_P0].bmField = CEF_COUNT_B0;	// All counts go to the same meta field
+//		CET[CE_LINK_TABLE_P0].bmField = 0;
 		i=FA_COUNT+FA_READ+FA_STEP;
 		ios=fa_handler(i, &CEB, cpSQL);
 	  }
