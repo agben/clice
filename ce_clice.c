@@ -37,21 +37,21 @@ void ce_clice_project(int iProjCount)
 					"1) Next",
 					"2) Previous",
 					"!3) Make all",
-					"!4) Make install"};
-	char **cpList;
-	char *cp;
+					"!4) Make install",
+					NULL};
+	char **cpList;					// pointers to a list of projects to list
+	char *cp;						// pointer to memory for project name list
 
 
 	ut_check((cpList = malloc((sizeof(char *)*iProjCount)+1)) != NULL &&
 			 (cp = malloc(iProjCount*CE_PROJ_LIST_S0)) != NULL,
 			"malloc error");
 
-	CE.bmField=CEF_PROJECT_B0+CEF_DESC_B0;
+	CE.bmField=CEF_PROJECT_B0+CEF_DESC_B0;		// Read all projects in the clice db
 	CEL.bmField=0;
 	CE.iType=CE_PROJ_T0;
-	ut_check(cef_main(FA_READ,"ce.type = %") == FA_OK_IV0,
+	ut_check(cef_main(FA_READ,"ce.type = % ORDER BY ce.project") == FA_OK_IV0,
 		"read projects");
-
 	for (i=0; i < iProjCount && cef_main(FA_STEP, 0) == FA_OK_IV0; i++)
 	  {
 		cpList[i]=&cp[i*CE_PROJ_LIST_S0];
@@ -67,8 +67,12 @@ void ce_clice_project(int iProjCount)
 					cpList);					// display project list until selection or quit requested
 	while (iOpt != NC_QUIT)
 	  {
-		snprintf(sBuff, sizeof(sBuff), "Project:%s", cpList[iPos-1]);
-		iOpt=nc_menu(sBuff, cpProjMenu);
+		snprintf(	sBuff,
+					sizeof(sBuff),
+					"Project:%s",
+					cpList[iPos-1]);			// display selected project
+
+		iOpt=nc_menu(sBuff, cpProjMenu);		// menu of project actions
 		switch (iOpt)
 		  {
 			case 1:								// Next item
@@ -111,15 +115,12 @@ void ce_clice_module(int iCount)
 	int	iOpt = -1;				// selected menu option
 	int	iPick;					// selected list option
 	int iPos;					// position within a search list
-
-								// The following variables hold a master list [0] and a proposed master list [1]
-								// i.e. We have an established list of modules but may decide to switch that for the proposed list
 	int iHits;					// number of search hits
 	int iCountTo=0;				// count of links to other modules
 	int iCountFrom=0;			// count of links from other modules
 
 	char sBuff[CE_DISP_M0*CE_DESC_S0];			// string buffer
-	char sType[20];								// type of module
+	char sType[20];				// type of module
 	char cMenu[2][30];			// modified menu options
 
 	char *cpMenu[CE_MOD_MENU_M0+1];
@@ -136,7 +137,7 @@ void ce_clice_module(int iCount)
 	char *cp1;					// List of selected module names
 	char *cp2;
 	int *ip1;					//	and their id's
-	int *ip2;					//	and their id's
+	int *ip2;
 
 	ut_check((cpList = malloc((sizeof(char *)*iCount)+1)) != NULL &&
 			 (cp1 = malloc(iCount*CE_MOD_LIST_S0)) != NULL &&
