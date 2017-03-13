@@ -7,14 +7,12 @@ _ce_edit()
 	local cur prev words cword
 	_init_completion || return
 
-#TODO replace hard-coding my directory with a clice config home folder
-
 	if [[  ${#cur} -lt 2 ]]
 	 then
-		cd "/home/ben/Code/"
+		cd "${GXT_CODE_HOME}"
 		COMPREPLY=( $( compgen -d -X '!??') )		# list all two character directories
 	else
-		SOURCEDIR="/home/ben/Code/$(echo ${cur:0:2}|tr [a-z] [A-Z])"
+		SOURCEDIR="${GXT_CODE_HOME}/$(echo ${cur:0:2}|tr [a-z] [A-Z])"
 		if [ -d "$SOURCEDIR" ]						# does project directory exist?
 		 then
 			cd ${SOURCEDIR}/

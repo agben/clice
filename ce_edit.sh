@@ -6,6 +6,7 @@
 #
 # Setup:	alias to a command name in your .bashrc		i.e. edc '. ce_edit.sh'
 #			use '. ' to run in the current shell to benefit from directory and flag changes (i.e. debug status)
+#			see ce_setup.sh for clice setup details
 #
 #	clice coding directory structure
 #	--------------------------------
@@ -28,10 +29,8 @@
 #					It will be easier to provide the full filename if ce_complete.sh is used for bash completion
 #						.i.e. partially type a name and press tab to complete it
 
-#TODO config file needed for pathnames + ~ didn't work? (directory not found)
 
-
-cd /home/ben/Code/				# relocate to the coding root directory
+cd "$GXT_CODE_HOME"
 if [ $# -eq 0 ]
  then							# and stay there if nothing else entered
 	return
@@ -46,7 +45,7 @@ if [ ! -d "${CE_PROJECT}" ]
     return
 fi
 
-cd ${CE_PROJECT}/				# relocate to the project directory
+cd "${CE_PROJECT}/"				# relocate to the project directory
 if [ ${#CE_FNAM} -eq 2 ]
  then							# and stay there if nothing else entered
 	return
@@ -97,8 +96,7 @@ case $CE_EDD in
 		 ;;
 		esac
 
-#TODO should use a config setting for Backup folder location
-		mv *~ ~/Code/Backup/				# using wildcard (*~) to keep folders tidy
+		mv *~ "${GXT_CODE_BACKUP}/"			# using wildcard (*~) to keep folders tidy
 #TODO Could keep several versions in Backup?
 	fi
 	;;
@@ -123,14 +121,14 @@ case "$CE_LANG" in
 			GXT_DEBUG="DEBUG=0"
 		fi
 	fi
-	export GXT_DEBUG					# export for use in subsequent makefiles
+#	export GXT_DEBUG					# export for use in subsequent makefiles
  ;;
  *)
 	CE_CO="N"
  ;;
 esac
 
-CE_ONAM="/home/ben/Code/Obj/${CE_PROGN}.o"		# object files full name
+CE_ONAM="${GXT_CODE_OBJECT}/${CE_PROGN}.o"		# object files full name
 
 case $CE_CO in
  [Yy])
@@ -182,4 +180,3 @@ case $CE_CO in
  ;;
 esac
 
-cd "$DNAM"						# return to original folder

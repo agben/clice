@@ -5,26 +5,24 @@
 # Setup:	alias to a command name in your .bashrc
 #			i.e. edm '. ce_edit_make.sh'
 #			use '. ' to run in the current shell to benefit from directory and flag changes
+#			edit ce_setup.sh to change clice config settings
 # Usage:	edm ce
 #			this will change your directory to CE (project name) and open the makefile
 #
 # Parameter 1 is the project name
 #
 
-#TODO config file needed for pathnames + ~ didn't work? (directory not found)
-CE_TOPD="/home/ben/Code"
 CE_PROJECT="$(echo $1|tr [a-z] [A-Z])"
 
-if [ -d "$CE_TOPD/$CE_PROJECT" ]
+if [ -d "${GXT_CODE_HOME}/${CE_PROJECT}" ]
  then
-	cd "$CE_TOPD/$CE_PROJECT/"
+	cd "${GXT_CODE_HOME}/${CE_PROJECT}/"
 
 	"${EDITOR:-nano}" makefile
 
 	if [ -f makefile~ ]				# If created a new version, move the previous to the Backup folder
 	 then
-#TODO should use a config setting for Backup folder location
-		mv makefile~ "$CE_TOPD/Backup/${CE_PROJECT}_makefile"
+		mv makefile~ "${GXT_CODE_BACKUP}/${CE_PROJECT}_makefile"
 #TODO Could keep several versions in Backup?
 	fi
 
@@ -45,6 +43,4 @@ if [ -d "$CE_TOPD/$CE_PROJECT" ]
 else
 	echo "Unknown project:[$CE_PROJECT]"
 fi
-
-# Don't return to initial directory to allow for make to be run
 
