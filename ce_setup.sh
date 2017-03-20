@@ -17,6 +17,9 @@ if [ ! -f "clicerc.template" ]
 fi
 cp clicerc.template "${HOME}/.clicerc"
 
+echo "running .clicerc to set shell environment variables"
+. "${HOME}/.clicerc"
+
 if [ `grep ".clice" "${HOME}/.bashrc"|wc -l` -eq 0 ]
  then
 	echo "update .bashrc to run .clicerc on each login"
@@ -25,5 +28,14 @@ if [ `grep ".clice" "${HOME}/.bashrc"|wc -l` -eq 0 ]
 else
 	echo ".bashrc already set to run .clicerc on each login"
 fi
+
+echo "place .makefile.template in coding home directory ${GXT_CODE_HOME}"
+if [ ! -f "makefile.template" ]
+ then
+    echo "ERROR - no makefile.template found"
+    exit
+fi
+cp makefile.template "${GXT_CODE_HOME}/.makefile.template"
+
 
 exit

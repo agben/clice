@@ -27,6 +27,7 @@
 //
 //--------------------------------------------------------------
 
+#include <stdlib.h>			// for memory management
 #include <stdio.h>			// for printf
 #include <string.h>			// for memcpy
 
@@ -95,7 +96,10 @@ int cef_main(int bmAction, char *cpSQL)
 					CE.sDir[0]=CE.sCode[0]=CE.sProject[0]=
 							CE.sDesc[0]=CE.sSource[0]='\0';
 					CE.cLang='?';
-					CE.iStatus=0;
+					CE.cMain=' ';
+					CE.cIgnore=' ';
+					CE.cLibrary=' ';
+					CE.cSpare=' ';
 					CE.iSize=0;
 
 					CE.bmField=FA_ALL_COLS_B0;			// Going to insert all new fields
@@ -208,14 +212,19 @@ int cef_main(int bmAction, char *cpSQL)
 			if (cef_main(FA_READ+FA_STEP,
 				"ce.name = % AND ce.type = %") == FA_OK_IV0)	// it has, so needs converting to a local function/header
 			  {
+				char *cp;
+				ut_check((cp = malloc(40)) != NULL, "memory error");
+
 				memcpy(CEL.sCalls, CE.sName, CE_NAME_S0);
 				CEL.iCtype=CE.iType-2;
 
 				CE.bmField=0;
 				CEL.bmField=CEF_LINK_CTYPE_B0;					// just update the called type
-				sprintf(sModule[0], "cl.calls = %% AND cl.ctype = %d",
+				sprintf(cp, "cl.calls = %% AND cl.ctype = %d",
 						CE.iType);								// search for system type and convert to local type
-				cef_main(FA_UPDATE, sModule[0]);
+				cef_main(FA_UPDATE, cp);
+
+				free(cp);
 
 				ios=FA_UPDATE;
 				CE.bmField=FA_ALL_COLS_B0-CEF_ID_B0-

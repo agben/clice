@@ -121,7 +121,7 @@ case "$CE_LANG" in
 			GXT_DEBUG="DEBUG=0"
 		fi
 	fi
-#	export GXT_DEBUG					# export for use in subsequent makefiles
+	export GXT_DEBUG					# export for use in subsequent makefiles
  ;;
  *)
 	CE_CO="N"

@@ -36,8 +36,9 @@ void ce_clice_project(int iProjCount)
 	char *cpProjMenu[]=	{			// Project menu template
 					"1) Next",
 					"2) Previous",
-					"!3) Make all",
-					"!4) Make install",
+					"3) Generate a makefile",
+					"!4) Make all",
+					"!5) Make install",
 					NULL};
 	char **cpList;					// pointers to a list of projects to list
 	char *cp;						// pointer to memory for project name list
@@ -81,10 +82,13 @@ void ce_clice_project(int iProjCount)
 			case 2:								// Previous item
 				if (iPos-1 > 0) iPos--;
 				break;
-			case 3:
-//				ce_make_all();
+			case 3:								// Generate a makefile
+//				ce_gen_make();
 				break;
 			case 4:
+//				ce_make_all();
+				break;
+			case 5:
 //				ce_make_install();
 				break;
 		  }
@@ -326,9 +330,9 @@ void ce_clice_module(int iCount)
 				cpList[iHits]=NULL;					// mark end of search results list
 				iLen+=3;							// allow this many spaces between name and type in the list
 
-				for (i=0; i < iHits; i++)
+				for (i=0; i < iHits; i++)			// check if each linked module exists in clice db
 				  {
-					for(j=0; cp2[(i*CE_MOD_LIST_S0)+j] > ' '; j++)
+					for (j=0; cp2[(i*CE_MOD_LIST_S0)+j] > ' '; j++)
 							CE.sName[j]=cp2[(i*CE_MOD_LIST_S0)+j];
 					CE.sName[j]='\0';				// extract item name and null terminate
 

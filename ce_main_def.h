@@ -24,7 +24,7 @@
 
 #define	CE_KEY_M0		5		// Number of keys defined for the SQL generator
 
-#define	CE_FIELD_M0		16		// max number of int + blob fields
+#define	CE_FIELD_M0		19		// max number of int + blob fields
 
 
 struct fa_sql_column CEF[CE_TABLE_M0][CE_FIELD_M0] =	//Declare the columns used in each table
@@ -35,7 +35,10 @@ struct fa_sql_column CEF[CE_TABLE_M0][CE_FIELD_M0] =	//Declare the columns used 
 				FA_COL_AUTO_B0),	(char*)&CE.iNo,			FA_FIELD_INT_S0},
 	{"name",	FA_COL_BLOB_B0,		(char*)&CE.sName,		CE_NAME_S0},
 	{"type",	FA_COL_INT_B0,		(char*)&CE.iType,		FA_FIELD_INT_S0},
-	{"status",	FA_COL_INT_B0,		(char*)&CE.iStatus,		FA_FIELD_INT_S0},
+	{"main",	FA_COL_CHAR_B0,		(char*)&CE.cMain,		FA_FIELD_CHAR_S0},
+	{"ignore",	FA_COL_CHAR_B0,		(char*)&CE.cIgnore,		FA_FIELD_CHAR_S0},
+	{"library",	FA_COL_CHAR_B0,		(char*)&CE.cLibrary,	FA_FIELD_CHAR_S0},
+	{"spare",	FA_COL_CHAR_B0,		(char*)&CE.cSpare,		FA_FIELD_CHAR_S0},
 	{"dir",		FA_COL_BLOB_B0,		(char*)&CE.sDir,		CE_DIR_S0},
 	{"source",	FA_COL_BLOB_B0,		(char*)&CE.sSource,		CE_SOURCE_S0},
 	{"project",	FA_COL_BLOB_B0,		(char*)&CE.sProject,	CE_PROJECT_S0},

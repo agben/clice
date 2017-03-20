@@ -1,15 +1,16 @@
 # ~/.clicerc: executed at user login via .bashrc
 #
 # Declare clice alias shortcuts
+alias clice='ce_clice'
 alias edc='. ce_edit.sh'
 alias edm='. ce_edit_make.sh'
 alias edp='. ce_edit_project.sh'
 #
 # Declare clice pathnames	--EDIT TO MATCH YOUR SETUP--
-GXT_CODE_HOME="${HOME}/Code"
-GXT_CODE_BACKUP="${GXT_CODE_HOME}/Backup"
-GXT_CODE_OBJECT="${GXT_CODE_HOME}/Obj"
+export GXT_CODE_HOME="${HOME}/Code"
+export GXT_CODE_BACKUP="${GXT_CODE_HOME}/Backup"
+export GXT_CODE_OBJECT="${GXT_CODE_HOME}/Obj"
 #
 # Initialise clice variables	--EDIT TO SET YOUR DEFAULT PREFERENCES--
-GXT_DEBUG="DEBUG=0"
+export GXT_DEBUG="DEBUG=0"
 

@@ -149,7 +149,10 @@ int main(int argc, char **argv)
 					  {
 						printf("CE: New program module added - %s\n", CE.sName);
 						CE.iType=CE_PROG_T0;
-						CE.iStatus=0;
+						CE.cMain=' ';
+						CE.cIgnore=' ';
+						CE.cLibrary=' ';
+						CE.cSpare=' ';
 						CE.iSize=i;
 						CE.iMDate=CE.iCDate;
 						CE.iMTime=CE.iCTime;

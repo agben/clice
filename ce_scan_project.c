@@ -99,7 +99,10 @@ int main(int argc, char **argv)
 	sprintf(CE.sName, "PROJECT");				// setup key for this project
 	CE.iType=CE_PROJ_T0;
 	CE.cLang=' ';
-	CE.iStatus=0;
+	CE.cMain=' ';
+	CE.cIgnore=' ';
+	CE.cLibrary=' ';
+	CE.cSpare=' ';
 	CE.iSize=0;
 
 	ut_date_now();								// get current date and time

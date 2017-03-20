@@ -59,7 +59,8 @@ int main(int argc, char **argv)
 	CE.sDesc[0]='\0';							// Mark description field as empty
 
 	fp = fopen(CE.sSource, "r");				// Open file as read-only
-	ut_check(fp != NULL, "open source file");	// jumps to error: if not ok
+	ut_check(fp != NULL, "open source file %s",
+								CE.sSource);	// jumps to error: if not ok
 
 	while (fgets(sBuff, BUFF_S0, fp) != NULL &&
 			CE.sDesc[0] == '\0')				// Stop once we have a description - remove when further checks added
@@ -125,7 +126,10 @@ int main(int argc, char **argv)
 		printf("CE: New shell script module added - %s\n", CE.sName);
 		CE.iType=CE_PROG_T0;
 
-		CE.iStatus=0;
+		CE.cMain=' ';								// n/a for scripts
+		CE.cIgnore=' ';
+		CE.cLibrary=' ';
+		CE.cSpare=' ';
 		CE.iCDate=CE.iMDate;
 		CE.iCTime=CE.iMTime;
 		CE.iSize=0;

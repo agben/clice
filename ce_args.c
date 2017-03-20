@@ -17,7 +17,9 @@
 //--------------------------------------------------------------
 
 #include <getopt.h>		// for getopt_long - argument parsing
-#include <stdio.h>		//for printf
+#include <stdio.h>		// for printf
+
+#include <ce_main.h>	// clice database fields and definitions
 
 
 void ce_help(void)
@@ -47,7 +49,7 @@ void ce_help(void)
 
 void ce_version(void)
   {
-	printf("clice - the Command-LIne Coding Ecosystem) v0.1.12.3\n");
+	printf("clice - the Command-LIne Coding Ecosystem) v0.1\n");
 	printf("        versioning = major.minor.feature-release.bugfix\n\n");
 	printf("Copyright (C) Andrew Bennington 2015-2017 <www.benningtons.net>\n");
 	printf("Licence GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n");
@@ -58,10 +60,12 @@ void ce_version(void)
 int ce_args(int argc, char **argv)
   {
 	static struct option long_options[] = { 		// valid arguments: name, has_arg(yes=1, no=0, opt=2), flag, val
-					{"help",	0,	0,	0},			// 0	Keep this order for parsing after getopt_long
-					{"version",	0,	0,	0},			// 1
-					{'\0',		0,	'\0',	0}
+					{"help",	no_argument,		0,	0},			// 0	Keep this order for parsing after getopt_long
+					{"version",	no_argument,		0,	0},			// 1
+					{"project",	required_argument,	0,	0},			// 2
+					{0,			0,					0,	0}
 	};
+//					{'\0',		0,	'\0',	0}
 
 	int option_index = 0;
 	int	i;
@@ -84,6 +88,12 @@ int ce_args(int argc, char **argv)
 		  {
 			ce_version();
 			return -1;						// ignore other args
+		  }
+		else if (option_index == 2)			// --project
+		  {
+			for (i=0; i < CE_PROJECT_S0-1; i++)
+				CE.sProject[i]=toupper(optarg[i]);
+			CE.sProject[i]='\0';
 		  }
 	  }
 
