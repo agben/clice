@@ -37,5 +37,12 @@ if [ ! -f "makefile.template" ]
 fi
 cp makefile.template "${GXT_CODE_HOME}/.makefile.template"
 
+echo "place the project config .template.clice in coding home directory ${GXT_CODE_HOME}"
+if [ ! -f "template.clice" ]
+ then
+    echo "ERROR - no template.clice found"
+    exit
+fi
+cp template.clice "${GXT_CODE_HOME}/.template.clice"
 
 exit

@@ -1,0 +1,11 @@
+# clice config file for each project. To be called .<project>.clice
+
+# Project details
+[Project]
+description: put your project description here
+
+# Any object files to be kept in a library?
+[Object Library]
+#object.o	library.a
+
+#finish (to ensure this config finishes with a line feed)

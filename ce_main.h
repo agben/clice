@@ -53,6 +53,12 @@ extern int	ce_args(int, char**);		// parse clice command-line arguments
 #define CE_HEAD_T0	2		// Header/library files
 #define CE_SYSF_T0	3		// system functions
 #define CE_SYSH_T0	4		// system header files
+#define CE_SRCE_T0	5		// source code files
+#define CE_OBJT_T0	6		// object files
+#define CE_OLIB_T0	7		// object libraries
+
+//------------------------------Identifiers for the main flag
+#define	CE_MAIN_T0	'm'		// main C program
 
 //------------------------------Declare some meaningful field names to map to the unpacked data
 struct CE_FIELDS

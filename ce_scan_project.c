@@ -51,6 +51,14 @@ int main(int argc, char **argv)
 	for (i=0; i < CE_PROJECT_S0-1; i++)
 		sBuff[i+1]=tolower(CE.sProject[i]);
 
+	ut_date_now();								// get current date and time
+
+	CEL.iNtype=CE_OBJT_T0;						// settings for any object to object library links
+	CEL.iCtype=CE_OLIB_T0;
+	strcpy (CEL.sCode, CE.sProject);
+	CEL.iTime=gxt_iTime[0];
+
+
 	fp = fopen(sBuff, "r");						// Open config file as read-only
 	ut_check(fp != NULL, "open config file");	// jumps to error: if not ok
 
@@ -62,6 +70,8 @@ int main(int argc, char **argv)
 		  {
 			if (memcmp(&sBuff[1], "Project", 7) == 0)
 				iSect=1;
+			else if (memcmp(&sBuff[1], "Object Library", 14) == 0)
+				iSect=2;
 			else
 			  {
 				printf("CE: unknown config section ignored: %s\n",
@@ -91,10 +101,66 @@ int main(int argc, char **argv)
 				printf("CE: unknown [Project] setting: %s\n",
 						sBuff);
 		  }
+		else if (iSect == 2)					// list of object files and the library they belong to
+		  {
+			CEL.sName[0]=CEL.sCalls[0]='\0';
+
+			for (i=0; i < CE_NAME_S0 && sBuff[i] > ' '; i++)				// extract object name
+				CEL.sName[i]=sBuff[i];
+			if (i == CE_NAME_S0) ut_error("object name too long");
+			CEL.sName[i]='\0';
+
+			while (sBuff[i] != '\n' && sBuff[i] <= ' ') i++;				// skip white space
+
+			for (j=0; j < CE_NAME_S0 && sBuff[i] != '\n'; j++, i++)			// extract library name
+				CEL.sCalls[j]=sBuff[i];
+			if (j == CE_NAME_S0) ut_error("object library name too long");
+			CEL.sCalls[i]='\0';
+
+			if (CEL.sName[0] > '\0' && CEL.sCalls[0] > '\0')				// valid entry? #TODO add more validation
+			  {
+				CE.bmField=0;
+				CEL.bmField=CEF_LINK_ID_B0;
+				if (cef_main(FA_READ+FA_STEP,
+					"cl.name = % AND cl.calls = %") == FA_NODATA_IV0)	// object to library link not found so create a new one
+				  {
+					CEL.bmField=FA_ALL_COLS_B0;
+					i=cef_main(FA_WRITE, 0);				// create new link record in db
+				  }
+				else										// exists so update last modified time
+				  {
+					CEL.bmField=CEF_LINK_TIME_B0;
+					i=cef_main(FA_UPDATE, "cl.id = %");		// update existing link record in db
+				  }
+				ut_check(i == FA_OK_IV0, "update %d", i);
+			  }
+		  }
 	  }
 
 	fclose(fp);									// finished with source code file
 	fp=NULL;
+
+	CEL.iNtype=CE_OBJT_T0;
+	CE.bmField=0;								// Find object file links with old timestamps
+	CEL.bmField=CEF_LINK_NAME_B0+CEF_LINK_CALLS_B0;
+	ut_check(cef_main(FA_READ,
+				"cl.ntype = % AND cl.code = % AND cl.time <> %") == FA_OK_IV0,
+				"purge read");
+	i=0;
+	while (cef_main(FA_STEP,0) == FA_OK_IV0)
+	  {
+		printf("clice: no longer placing object %s into library %s\n",
+			CEL.sName, CEL.sCalls);
+		i=1;
+	  }
+
+	if (i == 1)
+	  {
+		CEL.bmField=FA_ALL_COLS_B0;
+		ut_check(cef_main(FA_DELETE,
+				"cl.ntype = % AND cl.code = % AND cl.time <> %") == FA_OK_IV0,
+				"purge");
+	  }
 
 	sprintf(CE.sName, "PROJECT");				// setup key for this project
 	CE.iType=CE_PROJ_T0;
@@ -105,7 +171,6 @@ int main(int argc, char **argv)
 	CE.cSpare=' ';
 	CE.iSize=0;
 
-	ut_date_now();								// get current date and time
 	CE.iCDate=CE.iMDate=gxt_iDate[0];
 	CE.iCTime=CE.iMTime=gxt_iTime[0];
 
