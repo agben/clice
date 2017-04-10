@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 			  {
 				if (memcmp(sBuff, "main", 4) == 0)				// replace 'main' modules with the source filename
 				  {
-					CE.cMain='m';								// Flag as a root program
+					CE.cMain=CE_MAIN_T0;						// Flag as a root program
 					for (j = 0; j < CE_NAME_S0 &&
 							CE.sSource[j] != '\0' &&
 							CE.sSource[j] != '.'; j++)

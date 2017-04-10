@@ -8,4 +8,8 @@ description: put your project description here
 [Object Library]
 #object.o	library.a
 
+# Any system headers linked to run-time libraries?
+[Runtime Library]
+#sys_header	library
+
 #finish (to ensure this config finishes with a line feed)

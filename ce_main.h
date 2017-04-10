@@ -56,6 +56,7 @@ extern int	ce_args(int, char**);		// parse clice command-line arguments
 #define CE_SRCE_T0	5		// source code files
 #define CE_OBJT_T0	6		// object files
 #define CE_OLIB_T0	7		// object libraries
+#define CE_RLIB_T0	8		// run-time libraries
 
 //------------------------------Identifiers for the main flag
 #define	CE_MAIN_T0	'm'		// main C program

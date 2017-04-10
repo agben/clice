@@ -164,6 +164,7 @@ case $CE_CO in
 		gcc \
 			-D$GXT_DEBUG \
 			-c	\
+			-std=gnu11 \
 			-Wall	\
 			$CE_FNAM	\
 			-o $CE_ONAM

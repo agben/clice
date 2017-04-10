@@ -53,8 +53,6 @@ int main(int argc, char **argv)
 
 	ut_date_now();								// get current date and time
 
-	CEL.iNtype=CE_OBJT_T0;						// settings for any object to object library links
-	CEL.iCtype=CE_OLIB_T0;
 	strcpy (CEL.sCode, CE.sProject);
 	CEL.iTime=gxt_iTime[0];
 
@@ -71,7 +69,17 @@ int main(int argc, char **argv)
 			if (memcmp(&sBuff[1], "Project", 7) == 0)
 				iSect=1;
 			else if (memcmp(&sBuff[1], "Object Library", 14) == 0)
+			  {
 				iSect=2;
+				CEL.iNtype=CE_OBJT_T0;						// object to object library links
+				CEL.iCtype=CE_OLIB_T0;
+			  }
+			else if (memcmp(&sBuff[1], "Runtime Library", 15) == 0)
+			  {
+				iSect=3;
+				CEL.iNtype=CE_SYSH_T0;						// system headers to run-time library links
+				CEL.iCtype=CE_RLIB_T0;
+			  }
 			else
 			  {
 				printf("CE: unknown config section ignored: %s\n",
@@ -101,21 +109,21 @@ int main(int argc, char **argv)
 				printf("CE: unknown [Project] setting: %s\n",
 						sBuff);
 		  }
-		else if (iSect == 2)					// list of object files and the library they belong to
+		else if (iSect == 2 || iSect == 3)		// list of any specified links to libraries
 		  {
 			CEL.sName[0]=CEL.sCalls[0]='\0';
 
-			for (i=0; i < CE_NAME_S0 && sBuff[i] > ' '; i++)				// extract object name
+			for (i=0; i < CE_NAME_S0 && sBuff[i] > ' '; i++)				// extract module name
 				CEL.sName[i]=sBuff[i];
-			if (i == CE_NAME_S0) ut_error("object name too long");
+			if (i == CE_NAME_S0) ut_error("module name too long");
 			CEL.sName[i]='\0';
 
 			while (sBuff[i] != '\n' && sBuff[i] <= ' ') i++;				// skip white space
 
 			for (j=0; j < CE_NAME_S0 && sBuff[i] != '\n'; j++, i++)			// extract library name
 				CEL.sCalls[j]=sBuff[i];
-			if (j == CE_NAME_S0) ut_error("object library name too long");
-			CEL.sCalls[i]='\0';
+			if (j == CE_NAME_S0) ut_error("library name too long");
+			CEL.sCalls[j]='\0';
 
 			if (CEL.sName[0] > '\0' && CEL.sCalls[0] > '\0')				// valid entry? #TODO add more validation
 			  {
@@ -140,16 +148,17 @@ int main(int argc, char **argv)
 	fclose(fp);									// finished with source code file
 	fp=NULL;
 
-	CEL.iNtype=CE_OBJT_T0;
-	CE.bmField=0;								// Find object file links with old timestamps
+//	CEL.iNtype=CE_OBJT_T0;
+	CE.bmField=0;								// Find library links with old timestamps
 	CEL.bmField=CEF_LINK_NAME_B0+CEF_LINK_CALLS_B0;
 	ut_check(cef_main(FA_READ,
-				"cl.ntype = % AND cl.code = % AND cl.time <> %") == FA_OK_IV0,
+//				"cl.ntype = % AND cl.code = % AND cl.time <> %") == FA_OK_IV0,
+				"cl.code = % AND cl.time <> %") == FA_OK_IV0,
 				"purge read");
 	i=0;
 	while (cef_main(FA_STEP,0) == FA_OK_IV0)
 	  {
-		printf("clice: no longer placing object %s into library %s\n",
+		printf("clice: no longer linking object %s to library %s\n",
 			CEL.sName, CEL.sCalls);
 		i=1;
 	  }
@@ -158,7 +167,8 @@ int main(int argc, char **argv)
 	  {
 		CEL.bmField=FA_ALL_COLS_B0;
 		ut_check(cef_main(FA_DELETE,
-				"cl.ntype = % AND cl.code = % AND cl.time <> %") == FA_OK_IV0,
+//				"cl.ntype = % AND cl.code = % AND cl.time <> %") == FA_OK_IV0,
+				"cl.code = % AND cl.time <> %") == FA_OK_IV0,
 				"purge");
 	  }
 
