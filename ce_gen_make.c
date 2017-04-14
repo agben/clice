@@ -3,7 +3,6 @@
 // Generate a makefile for a project based on clice data
 //
 //	usage:	$ce_gen_make
-//		The current directory is used to determine which project makefile to generate.
 //
 //		options
 //			--help			= basic help
@@ -28,6 +27,7 @@
 #include <ut_error.h>	// for debug and checks
 
 #define	BUFF_S0 200		// Output buffer size
+static char sBuff[BUFF_S0];	// output buffer for building makefile lines
 
 
 struct CE_EXTRACT
@@ -38,6 +38,48 @@ struct CE_EXTRACT
 	char	cLang;				// language used
   };
 
+
+
+//--------------------------------------------------------------
+//
+// Check if output lines are full and need continuing on the next line
+//
+// Arguments:
+//	fp		- file pointer to new makefile
+//	iF		- flag = 0 - output if line full and add continuation
+//					 1 - output anyway
+//	cp		- pointer to current position in output buffer
+//
+//--------------------------------------------------------------
+
+#define	LINE_S0 80			// Line length marker (trigger extension if exceeded)
+#define	OUT_F0 1			// Output anyway flag
+#define	OUT_IF_FULL_F0 0	// Output if line full flag
+
+void ce_gen_make_line(FILE *fp, const int iF, char **cp)
+  {
+	int ios = 0;							// io status
+
+	if (iF == OUT_F0)						// output buffer to makefile
+	  {
+		ios=fputs(sBuff, fp);
+		*cp = &sBuff[0];					// reset buffer pointer
+	  }
+	else if ((*cp-&sBuff[0]) > LINE_S0)		// output if line full?
+	  {
+		snprintf(	*cp,
+					BUFF_S0-(*cp-&sBuff[0]),
+					" \\\n");				// add a continuation backslash and a linefeed
+		ios=fputs(sBuff, fp);
+		*cp = &sBuff[0]+1;
+		sBuff[0]='\t';						// start continuation line with a tab
+	  }
+	else
+		return;
+
+	if (!ios) ut_error("write error %d", ios);
+	return;
+  }
 
 //--------------------------------------------------------------
 //
@@ -50,6 +92,10 @@ struct CE_EXTRACT
 //	sName	- pointer to module name that could be added to the sp list
 //	iType	- type of the module sName
 //
+// Returns:
+//	-1		- error
+//	>= 0	- slot in structure sp used
+//
 //--------------------------------------------------------------
 
 int ce_gen_make_add(struct CE_EXTRACT **sp, int *i, int *iMax, const char *sName, const int iType)
@@ -61,7 +107,8 @@ int ce_gen_make_add(struct CE_EXTRACT **sp, int *i, int *iMax, const char *sName
 		if ((*sp+j)->iType == iType &&
 			strncmp((*sp+j)->sName, sName, CE_NAME_S0) == 0) break;
 	  }
-	if (j >= *i)									// new item to add to recursive list
+
+	if (j >= *i)								// new item to add to recursive list
 	  {
 		(*sp+(*i))->iType=iType;
 		memcpy(	(*sp+(*i))->sName,
@@ -71,10 +118,11 @@ int ce_gen_make_add(struct CE_EXTRACT **sp, int *i, int *iMax, const char *sName
 		  {
 			*iMax+=50;
 			ut_check((*sp = realloc(*sp, sizeof(struct CE_EXTRACT)*(*iMax))) != NULL,
-					"realloc error");
+					"memory error");
 		  }
 	  }
 	return j;
+
 error:
 	return -1;
   }
@@ -92,8 +140,7 @@ error:
 //	iType	- type of the module sName
 //
 // Returns:
-//	-1	- error
-//	0	- source already exists in list
+//	0	- error or source already exists in list
 //	1	- source added to list
 //
 //--------------------------------------------------------------
@@ -114,9 +161,8 @@ int ce_gen_make_source(struct CE_EXTRACT **sp, int *i, int *iMax, const char *sN
 			"add");
 	if (*i > j) return 1;						// source not already listed
 
-	return 0;
 error:
-	return -1;
+	return 0;
   }
 
 
@@ -134,13 +180,11 @@ void ce_gen_make_olib(struct CE_EXTRACT **sp, FILE *fp)
   {
 	struct CE_EXTRACT *spC;	// list of modules linked to the extracted program, sp
 	int iC = 0;				// count of modules linked
-	int iCmax = 50;			// initial memory allocation for these module lists
-	int ios = -1;			// i/o status
-	char sBuff[BUFF_S0];	// output buffer for building makefile lines
+	int iCmax = 20;			// initial memory allocation for these module lists
 
 
 	ut_check((spC = malloc(sizeof(struct CE_EXTRACT)*iCmax)) != NULL,	// initial allocation for lists of called modules
-			"malloc error");
+			"memory error");
 
 	CE.bmField=0;
 	CEL.bmField=CEF_LINK_NAME_B0+CEF_LINK_NTYPE_B0;
@@ -159,32 +203,19 @@ void ce_gen_make_olib(struct CE_EXTRACT **sp, FILE *fp)
 	cp+=snprintf(cp, BUFF_S0, "$(objdir)/%s:", (*sp)->sName);
 	for (int j=0; j < iC; j++)					// list each object file as a dependency
 	  {
+		ce_gen_make_line(fp, OUT_IF_FULL_F0, &cp);
 		cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " $(objdir)/%s", (spC+j)->sName);
-		if ((cp-&sBuff[0]) > 70)				// adjust to alter line length in the makefile
-		  {
-			snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " \\\n");
-			ut_check((ios=fputs(sBuff, fp)), "write %d", ios);
-			cp = &sBuff[0]+1;
-			sBuff[0]='\t';
-		  }
 	  }
+	ce_gen_make_line(fp, OUT_F0, &cp);			// write target and dependencies line
 
 	cp+=snprintf(cp, BUFF_S0, " \n\tar rs $(objdir)/%s", (*sp)->sName);
 	for (int j=0; j < iC; j++)					// list each object file as a file to archive
 	  {
+		ce_gen_make_line(fp, OUT_IF_FULL_F0, &cp);
 		cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " $(objdir)/%s", (spC+j)->sName);
-		if ((cp-&sBuff[0]) > 70)				// adjust to alter line length in the makefile
-		  {
-			snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " \\\n");
-			ut_check((ios=fputs(sBuff, fp)), "write %d", ios);
-			cp = &sBuff[0]+1;
-			sBuff[0]='\t';
-		  }
 	  }
-
 	cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\n");
-
-	ut_check((ios=fputs(sBuff, fp)), "write %d", ios);
+	ce_gen_make_line(fp, OUT_F0, &cp);			// write library archive line
 
 error:
 	if (spC != NULL) free(spC);
@@ -209,8 +240,6 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 	int iC = 0;				// count of modules linked
 	int iCmax = 50;			// initial memory allocation for these module lists
 	int iDirect = 0;		// count of how many modules are directly linked from the main program
-	int ios = -1;			// i/o status
-	char sBuff[BUFF_S0];	// output buffer for building makefile lines
 
 
 	ut_check((spC = malloc(sizeof(struct CE_EXTRACT)*iCmax)) != NULL,	// initial allocation for lists of called modules
@@ -287,8 +316,8 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 					" $(includedir)/%s.h", (spC+j)->sName);
 		else if ((spC+j)->iType == CE_PROG_T0)
 		  {
-			ios=ce_gen_make_source(&spC, &iC, &iCmax, (spC+j)->sName, (spC+j)->iType);
-			if (ios == 1)					// source not already listed so use it?
+			if (ce_gen_make_source(&spC, &iC, &iCmax,
+									(spC+j)->sName, (spC+j)->iType))	// new source if true
 			  {
 				int i;
 				CE.bmField=0;			// first check if the object file is in a library
@@ -316,13 +345,7 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 			  }
 		  }
 
-		if ((cp-&sBuff[0]) > 70)					// adjust to alter line length in the makefile
-		  {
-			snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " \\\n");
-			ut_check((ios=fputs(sBuff, fp)), "write %d", ios);
-			cp = &sBuff[0]+1;
-			sBuff[0]='\t';
-		  }
+		ce_gen_make_line(fp, OUT_IF_FULL_F0, &cp);
 	  }
 
 	cp+=snprintf(cp, BUFF_S0, " \n\t$(GCC) $(CFLAGS) ");	// #TODO defaulting to C
@@ -338,8 +361,7 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 		cp+=snprintf(cp, BUFF_S0, "-c $< -o $@");
 
 	cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\n");
-
-	ut_check((ios=fputs(sBuff, fp)), "write %d", ios);
+	ce_gen_make_line(fp, OUT_F0, &cp);			// write target and dependencies line
 
 error:
 	if (spC != NULL) free(spC);
@@ -361,7 +383,6 @@ int main(int argc, char **argv)
 
 	FILE *fpT = NULL,		// file pointer for template
 		 *fpN = NULL;		// file pointer for new makefile
-	char sBuff[BUFF_S0];	// input buffer for template reads
 	char *cp;
 	int i;
 	int ios = -1;			// i/o status
@@ -406,7 +427,7 @@ int main(int argc, char **argv)
 	  {
 		if (sBuff[0] != '#' || sBuff[1] != '~')		// non-marker lines to be written directly to generated file
 		  {
-			ut_check((ios=fputs(sBuff, fpN)), "write %d", ios);
+			ce_gen_make_line(fpN, OUT_F0, &cp);
 			continue;
 		  }
 
@@ -416,7 +437,7 @@ int main(int argc, char **argv)
 			snprintf(sBuff, BUFF_S0, "# built on %.2d%.2d%d at %.4d\n",
 					gxt_iDate[0]%100, (gxt_iDate[0]%10000)/100,
 					gxt_iDate[0]/10000, gxt_iTime[0]/100);
-			ut_check((ios=fputs(sBuff, fpN)), "write %d", ios);
+			ce_gen_make_line(fpN, OUT_F0, &cp);
 			continue;
 		  }
 
@@ -434,16 +455,10 @@ int main(int argc, char **argv)
 				else if (CE.iType == CE_PROJ_T0 && CE.sSource[0] > '0')			// object library
 					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "$(objdir)/%s ", CE.sSource);
 
-				if ((cp-&sBuff[0]) > 70)						// adjust to alter line length in the makefile
-				  {
-					snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\\\n");
-					ut_check((ios=fputs(sBuff, fpN)), "write %d", ios);
-					cp = &sBuff[0]+1;
-					sBuff[0]='\t';
-				  }
+				ce_gen_make_line(fpN, OUT_IF_FULL_F0, &cp);
 			  }
 			snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\n");			// output remainder of last line or a blank continuation
-			ut_check((ios=fputs(sBuff, fpN)), "write %d", ios);
+			ce_gen_make_line(fpN, OUT_F0, &cp);
 		  }
 		else if (memcmp(&sBuff[2], "fun", 3) == 0)				// extract a list of project functions to compile
 		  {
@@ -488,16 +503,10 @@ int main(int argc, char **argv)
 				else if (CE.iType == CE_PROG_T0 && CE.cMain == CE_MAIN_T0)
 					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "$(bindir)/%s ", CE.sName);
 
-				if ((cp-&sBuff[0]) > 70)						// adjust to alter line length in the makefile
-				  {
-					snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\\\n");
-					ut_check((ios=fputs(sBuff, fpN)), "write %d", ios);
-					cp = &sBuff[0]+1;
-					sBuff[0]='\t';
-				  }
+				ce_gen_make_line(fpN, OUT_IF_FULL_F0, &cp);
 			  }
 			snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\n");			// output remainder of last line or a blank continuation
-			ut_check((ios=fputs(sBuff, fpN)), "write %d", ios);
+			ce_gen_make_line(fpN, OUT_F0, &cp);
 
 			ut_check(cef_main(FA_RESET, 0) == FA_OK_IV0, "reset");
 
@@ -522,7 +531,7 @@ int main(int argc, char **argv)
 				if (cp > sBuff)
 				  {
 					snprintf(cp, BUFF_S0, "\tsudo cp $^ $@\n");
-					ut_check((ios=fputs(sBuff, fpN)), "write %d", ios);
+					ce_gen_make_line(fpN, OUT_F0, &cp);
 				  }
 			  }
 		  }
@@ -545,7 +554,7 @@ int main(int argc, char **argv)
 				else if (CE.iType == CE_PROG_T0 && CE.cMain == CE_MAIN_T0)
 					snprintf(sBuff, BUFF_S0, "\tsudo rm $(bindir)/%s\n", CE.sName);
 
-				if (sBuff[0] != 0) ut_check((ios=fputs(sBuff, fpN)), "write %d", ios);
+				if (sBuff[0] != 0) ce_gen_make_line(fpN, OUT_F0, &cp);
 			  }
 		  }
 		else
@@ -560,7 +569,7 @@ int main(int argc, char **argv)
 		  {
 			if (sp->iType == CE_OLIB_T0)
 				ce_gen_make_olib(&sp, fpN);			// build an object library
-			else if (ce_gen_make_source(&spE, &iE, &iEmax, sp->sName, sp->iType) > 0)
+			else if (ce_gen_make_source(&spE, &iE, &iEmax, sp->sName, sp->iType))	// new source file?
 				ce_gen_make_out(&sp, fpN);			// only build each source file once
 		  }
 
