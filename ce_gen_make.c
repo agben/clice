@@ -122,6 +122,79 @@ error:
 
 //--------------------------------------------------------------
 //
+// Output dependency and archive commands for an object library entry in a makefile
+//
+// Arguments:
+//	sp		- pointer to object library that needs a dependency list and archive command output to makefile
+//	fp		- file pointer to new makefile
+//
+//--------------------------------------------------------------
+
+void ce_gen_make_olib(struct CE_EXTRACT **sp, FILE *fp)
+  {
+	struct CE_EXTRACT *spC;	// list of modules linked to the extracted program, sp
+	int iC = 0;				// count of modules linked
+	int iCmax = 50;			// initial memory allocation for these module lists
+	int ios = -1;			// i/o status
+	char sBuff[BUFF_S0];	// output buffer for building makefile lines
+
+
+	ut_check((spC = malloc(sizeof(struct CE_EXTRACT)*iCmax)) != NULL,	// initial allocation for lists of called modules
+			"malloc error");
+
+	CE.bmField=0;
+	CEL.bmField=CEF_LINK_NAME_B0+CEF_LINK_NTYPE_B0;
+
+	memcpy(	CEL.sCalls,
+			(*sp)->sName,
+			CE_NAME_S0);
+	CEL.iCtype=(*sp)->iType;
+	ut_check(cef_main(FA_READ,"cl.calls = % AND cl.ctype = % ORDER BY cl.name ASC") == FA_OK_IV0,
+					"read");
+	while(cef_main(FA_STEP, 0) == FA_OK_IV0)	// build a list of object files to place in library
+		ut_check(ce_gen_make_add(&spC, &iC, &iCmax, CEL.sName, CEL.iNtype) >= 0,
+					"add");
+
+	char *cp = &sBuff[0];						// generate makefile compliation lists
+	cp+=snprintf(cp, BUFF_S0, "$(objdir)/%s:", (*sp)->sName);
+	for (int j=0; j < iC; j++)					// list each object file as a dependency
+	  {
+		cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " $(objdir)/%s", (spC+j)->sName);
+		if ((cp-&sBuff[0]) > 70)				// adjust to alter line length in the makefile
+		  {
+			snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " \\\n");
+			ut_check((ios=fputs(sBuff, fp)), "write %d", ios);
+			cp = &sBuff[0]+1;
+			sBuff[0]='\t';
+		  }
+	  }
+
+	cp+=snprintf(cp, BUFF_S0, " \n\tar rs $(objdir)/%s", (*sp)->sName);
+	for (int j=0; j < iC; j++)					// list each object file as a file to archive
+	  {
+		cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " $(objdir)/%s", (spC+j)->sName);
+		if ((cp-&sBuff[0]) > 70)				// adjust to alter line length in the makefile
+		  {
+			snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " \\\n");
+			ut_check((ios=fputs(sBuff, fp)), "write %d", ios);
+			cp = &sBuff[0]+1;
+			sBuff[0]='\t';
+		  }
+	  }
+
+	cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\n");
+
+	ut_check((ios=fputs(sBuff, fp)), "write %d", ios);
+
+error:
+	if (spC != NULL) free(spC);
+	return;
+  }
+
+
+
+//--------------------------------------------------------------
+//
 // Output dependency and compilation commands
 //
 // Arguments:
@@ -148,17 +221,17 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 
 	memcpy(	spC->sName,
 			(*sp)->sName,
-			CE_NAME_S0);						// start by checking everything linked to the passed program
-	spC->iType=CE_PROG_T0;
+			CE_NAME_S0);					// start by checking everything linked to the passed program
+	spC->iType=(*sp)->iType;
 
-	for (int j=0; j <= iC; j++)					// build a recursive list of called modules
+	for (int j=0; j <= iC; j++)				// build a recursive list of called modules
 	  {
 		memcpy(	CEL.sName,
 				(spC+j)->sName,
 				CE_NAME_S0);
 		CEL.iNtype=(spC+j)->iType;
 		ut_check(cef_main(FA_READ,"cl.name = % AND cl.ntype = % ORDER BY cl.calls ASC") == FA_OK_IV0,
-					"read");
+				"read");
 
 		while(cef_main(FA_STEP, 0) == FA_OK_IV0)
 			if (strncmp(CEL.sCalls, (*sp)->sName, CE_NAME_S0) != 0)		// ignore any recursive calls to same function
@@ -191,18 +264,23 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 		  }
 
 		cp+=snprintf(cp, BUFF_S0, "%s: %s.%c",
-			(*sp)->sName, (*sp)->sName, tolower((*sp)->cLang));
+			(*sp)->sName, (*sp)->sName, tolower((*sp)->cLang));	// add target and source dependency for executables
 
 		iDirect=iC;								// executable so needs to link with all recursive routines
 	  }
-	else
-	  {
-		cp+=snprintf(cp, BUFF_S0, "$(objdir)/%s.o: %s.%c",		//#TODO will need to check if source file named differently
-			(*sp)->sName, (*sp)->sName, tolower((*sp)->cLang));
-	  }
-	ce_gen_make_source(&spC, &iC, &iCmax, (*sp)->sName, (*sp)->iType);
 
-	for (int j=0; j < iDirect; j++)					// start at 1 because the 1st is the main program
+	ce_gen_make_source(&spC, &iC, &iCmax, (*sp)->sName,
+						(*sp)->iType);			// add source to list to prevent repeat dependencies for any internal functions
+
+	if ((*sp)->cMain != CE_MAIN_T0)				// add target and source dependency for functions
+	  {
+		int i;
+		for (i=0; i < CE_NAME_S0 && CE.sSource[i] != '.'; i++);
+		cp+=snprintf(cp, BUFF_S0, "$(objdir)/%.*s.o: %s",
+			i, CE.sSource, CE.sSource);
+	  }
+
+	for (int j=0; j < iDirect; j++)
 	  {
 		if ((spC+j)->iType == CE_HEAD_T0)
 			cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]),
@@ -313,7 +391,8 @@ int main(int argc, char **argv)
 	ut_check((fpN=fopen("makefile", "w")) != NULL, "open new makefile");
 
 	CE.bmField=CEF_TYPE_B0+CEF_NAME_B0+
-					CEF_LANG_B0+CEF_MAIN_B0;
+				CEF_LANG_B0+CEF_MAIN_B0+
+				CEF_SOURCE_B0;
 	CEL.bmField=0;
 	CE.iType=CE_SYSF_T0;
 	ut_check(cef_main(FA_READ,"ce.project = % AND ce.type < % ORDER BY ce.type DESC, ce.name ASC") == FA_OK_IV0,
@@ -339,24 +418,24 @@ int main(int argc, char **argv)
 
 		ut_check(cef_main(FA_RESET, 0) == FA_OK_IV0, "reset");	// reset prepare to step through project list again
 
-		if (memcmp(&sBuff[2], "exe", 3) == 0)					// list project executables
+		if (memcmp(&sBuff[2], "exe", 3) == 0)					// list project executables and object libraries
 		  {
 			cp = &sBuff[0]+1;
 			sBuff[0]='\t';
 
 			while(cef_main(FA_STEP, 0) == FA_OK_IV0)
 			  {
-				if (CE.iType == CE_PROG_T0 && CE.cMain == CE_MAIN_T0)
-				  {
+				if (CE.iType == CE_PROG_T0 && CE.cMain == CE_MAIN_T0)			// main executable
 					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "%s ", CE.sName);
+				else if (CE.iType == CE_PROJ_T0 && CE.sSource[0] > '0')			// object library
+					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "$(objdir)/%s ", CE.sSource);
 
-					if ((cp-&sBuff[0]) > 70)					// adjust to alter line length in the makefile
-					  {
-						snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\\\n");
-						ut_check((ios=fputs(sBuff, fpN)), "write %d", ios);
-						cp = &sBuff[0]+1;
-						sBuff[0]='\t';
-					  }
+				if ((cp-&sBuff[0]) > 70)						// adjust to alter line length in the makefile
+				  {
+					snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\\\n");
+					ut_check((ios=fputs(sBuff, fpN)), "write %d", ios);
+					cp = &sBuff[0]+1;
+					sBuff[0]='\t';
 				  }
 			  }
 			snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\n");			// output remainder of last line or a blank continuation
@@ -375,6 +454,13 @@ int main(int argc, char **argv)
 						"add");
 					(spE+iE-1)->cLang=CE.cLang;
 					(spE+iE-1)->cMain=CE.cMain;
+				  }
+				else if (CE.iType == CE_PROJ_T0 && CE.sSource[0] > '0')
+				  {
+					ut_check(ce_gen_make_add(&spE, &iE, &iEmax, CE.sSource, CE.iType) >= 0,
+						"add");
+					(spE+iE-1)->iType=CE_OLIB_T0;
+					(spE+iE-1)->cMain=CE_MAIN_T0;
 				  }
 			  }
 		  }
@@ -466,8 +552,13 @@ int main(int argc, char **argv)
 	for (i=0; i < iE;)
 	  {
 		sp=spE+i;
-		if (sp->cMain == cMain && ce_gen_make_source(&spE, &iE, &iEmax, sp->sName, sp->iType) > 0)
-			ce_gen_make_out(&sp, fpN);				// only build each source file once
+		if (sp->cMain == cMain)
+		  {
+			if (sp->iType == CE_OLIB_T0)
+				ce_gen_make_olib(&sp, fpN);			// build an object library
+			else if (ce_gen_make_source(&spE, &iE, &iEmax, sp->sName, sp->iType) > 0)
+				ce_gen_make_out(&sp, fpN);			// only build each source file once
+		  }
 
 		if (++i == iE && cMain == CE_MAIN_T0)		// 1st time through list pick out the main executables
 		  {

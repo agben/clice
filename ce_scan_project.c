@@ -45,7 +45,8 @@ int main(int argc, char **argv)
 		CE.sProject[i]=CE.sDir[strlen(CE.sDir)+i+1-CE_PROJECT_S0];
 	CE.sProject[i]='\0';						// extract project code from current directory
 
-	CE.sDesc[0]='\0';							// Mark description field as empty
+	CE.sDesc[0]='\0';							// Mark fields as empty - they may get propulated from the project config file
+	CE.sSource[0]='\0';
 
 	sprintf(sBuff, ".xx.clice");				// build config filename to open
 	for (i=0; i < CE_PROJECT_S0-1; i++)
@@ -141,18 +142,17 @@ int main(int argc, char **argv)
 					i=cef_main(FA_UPDATE, "cl.id = %");		// update existing link record in db
 				  }
 				ut_check(i == FA_OK_IV0, "update %d", i);
-			  }
+				if (iSect == 2) memcpy (CE.sSource, CEL.sCalls, CE_NAME_S0);	// remember project object library for project record
+			  }												// #TODO assumes just one object library per project
 		  }
 	  }
 
 	fclose(fp);									// finished with source code file
 	fp=NULL;
 
-//	CEL.iNtype=CE_OBJT_T0;
 	CE.bmField=0;								// Find library links with old timestamps
 	CEL.bmField=CEF_LINK_NAME_B0+CEF_LINK_CALLS_B0;
 	ut_check(cef_main(FA_READ,
-//				"cl.ntype = % AND cl.code = % AND cl.time <> %") == FA_OK_IV0,
 				"cl.code = % AND cl.time <> %") == FA_OK_IV0,
 				"purge read");
 	i=0;
@@ -167,7 +167,6 @@ int main(int argc, char **argv)
 	  {
 		CEL.bmField=FA_ALL_COLS_B0;
 		ut_check(cef_main(FA_DELETE,
-//				"cl.ntype = % AND cl.code = % AND cl.time <> %") == FA_OK_IV0,
 				"cl.code = % AND cl.time <> %") == FA_OK_IV0,
 				"purge");
 	  }
@@ -194,7 +193,8 @@ int main(int argc, char **argv)
 	  }
 	else										// exists so update last modified date/time
 	  {
-		CE.bmField=CEF_LAST_MOD_B0+CEF_DESC_B0;	// update modified date and description (in case changed)
+		CE.bmField=CEF_LAST_MOD_B0+CEF_DESC_B0+	// update modified date and description (in case changed)
+					CEF_SOURCE_B0;				//	also the source field for a PROJECT record that holds any object library name
 		i=FA_UPDATE;
 	  }
 
