@@ -388,7 +388,11 @@ int main(int argc, char **argv)
 			getenv("GXT_CODE_HOME"));			// open the clice makefile template
 	ut_check((fpT=fopen(sBuff, "r")) != NULL, "open template");
 
-	ut_check((fpN=fopen("makefile", "w")) != NULL, "open new makefile");
+	sprintf(sBuff,
+			"%s/%s/makefile",
+			getenv("GXT_CODE_HOME"),
+			CE.sProject);						// create new empty makefile for selected project
+	ut_check((fpN=fopen(sBuff, "w")) != NULL, "open new makefile");
 
 	CE.bmField=CEF_TYPE_B0+CEF_NAME_B0+
 				CEF_LANG_B0+CEF_MAIN_B0+
