@@ -56,7 +56,7 @@ struct CE_EXTRACT
 #define	OUT_F0 1			// Output anyway flag
 #define	OUT_IF_FULL_F0 0	// Output if line full flag
 
-void ce_gen_make_line(FILE *fp, const int iF, char **cp)
+static void ce_gen_make_line(FILE *fp, const int iF, char **cp)
   {
 	int ios = 0;							// io status
 
@@ -312,8 +312,11 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 	for (int j=0; j < iDirect; j++)
 	  {
 		if ((spC+j)->iType == CE_HEAD_T0)
+		  {
+			ce_gen_make_line(fp, OUT_IF_FULL_F0, &cp);
 			cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]),
 					" $(includedir)/%s.h", (spC+j)->sName);
+		  }
 		else if ((spC+j)->iType == CE_PROG_T0)
 		  {
 			if (ce_gen_make_source(&spC, &iC, &iCmax,
@@ -338,14 +341,18 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 					ut_check(ce_gen_make_add(&spC, &iC, &iCmax, CEL.sCalls, CE_OLIB_T0) >= 0,
 							"add");
 					if (iC > i)					// object library not already listed so use it?
+					  {
+						ce_gen_make_line(fp, OUT_IF_FULL_F0, &cp);
 						cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " $(objdir)/%s", CEL.sCalls);
+					  }
 				  }
 				else
+				  {
+					ce_gen_make_line(fp, OUT_IF_FULL_F0, &cp);
 					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " $(objdir)/%s", CEL.sName);
+				  }
 			  }
 		  }
-
-		ce_gen_make_line(fp, OUT_IF_FULL_F0, &cp);
 	  }
 
 	cp+=snprintf(cp, BUFF_S0, " \n\t$(GCC) $(CFLAGS) ");	// #TODO defaulting to C
@@ -355,7 +362,10 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 		cp+=snprintf(cp, BUFF_S0, "$^ -o $@");
 		for (int j=0; j <= iC; j++)							// link with any run-time libraries?
 			if ((spC+j)->iType == CE_RLIB_T0)
+			  {
+				ce_gen_make_line(fp, OUT_IF_FULL_F0, &cp);
 				cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " -l%s", (spC+j)->sName);
+			  }
 	  }
 	else
 		cp+=snprintf(cp, BUFF_S0, "-c $< -o $@");
