@@ -26,20 +26,21 @@
 
 #define	CE_PROJ_LIST_S0 (CE_PROJECT_S0+3+CE_DESC_S0)	// width of project list
 
-void ce_clice_project(int iProjCount)
+void ce_clice_project(int const iProjCount)
   {
 	int	i;
 	int	iOpt;						// selected menu option
 	int iPos;						// position within a search list
 	char sBuff[CE_PROJ_LIST_S0+10];	// string buffer
 
-	char *cpProjMenu[]=	{			// Project menu template
+	char sProjMenu[5][24] =	{			// Project menu template
 					"1) Next",
 					"2) Previous",
 					"3) Generate a makefile",
 					"!4) Make all",
-					"!5) Make install",
-					NULL};
+					"!5) Make install"},
+		*cpProjMenu[6],
+		sProj3[] = {"!3) makefile has been generated"};
 	char **cpList;					// pointers to a list of projects to list
 	char *cp;						// pointer to memory for project name list
 
@@ -66,6 +67,14 @@ void ce_clice_project(int iProjCount)
 	iOpt=iPos=(iProjCount == 1) ? 1 :
 			nc_menu("Select required entry",
 					cpList);					// display project list until selection or quit requested
+
+	if (iOpt != NC_QUIT)
+	  {
+		for (i=0; i < 5; ++i)
+			cpProjMenu[i]=&sProjMenu[i][0];		// load pointers to menu
+		cpProjMenu[5]=NULL;
+	  }
+
 	while (iOpt != NC_QUIT)
 	  {
 		snprintf(	sBuff,
@@ -78,12 +87,16 @@ void ce_clice_project(int iProjCount)
 		  {
 			case 1:								// Next item
 				if (iPos < iProjCount) iPos++;
+				cpProjMenu[2]=&sProjMenu[2][0];	// reset options to standard template
 				break;
 			case 2:								// Previous item
 				if (iPos-1 > 0) iPos--;
+				cpProjMenu[2]=&sProjMenu[2][0];	// reset options to standard template
 				break;
 			case 3:								// Generate a makefile
-//				ce_gen_make();
+				sprintf(sBuff, "./ce_gen_make --project=%s", cpList[iPos-1]);
+				if (system(sBuff) == 0)
+					cpProjMenu[2]=&sProj3[0];	// change menu line to show success
 				break;
 			case 4:
 //				ce_make_all();
