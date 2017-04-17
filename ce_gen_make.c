@@ -46,21 +46,19 @@ struct CE_EXTRACT
 //
 // Arguments:
 //	fp		- file pointer to new makefile
-//	iF		- flag = 0 - output if line full and add continuation
-//					 1 - output anyway
+//	bmAction -	FA_ADD	- output if line full and add continuation
+//				FA_WRITE- output anyway
 //	cp		- pointer to current position in output buffer
 //
 //--------------------------------------------------------------
 
 #define	LINE_S0 80			// Line length marker (trigger extension if exceeded)
-#define	OUT_F0 1			// Output anyway flag
-#define	OUT_IF_FULL_F0 0	// Output if line full flag
 
-static void ce_gen_make_line(FILE *fp, const int iF, char **cp)
+static void ce_gen_make_line(FILE * const fp, const int iAction, char **cp)
   {
 	int ios = 0;							// io status
 
-	if (iF == OUT_F0)						// output buffer to makefile
+	if (iAction == FA_WRITE)				// output buffer to makefile
 	  {
 		ios=fputs(sBuff, fp);
 		*cp = &sBuff[0];					// reset buffer pointer
@@ -203,19 +201,19 @@ void ce_gen_make_olib(struct CE_EXTRACT **sp, FILE *fp)
 	cp+=snprintf(cp, BUFF_S0, "$(objdir)/%s:", (*sp)->sName);
 	for (int j=0; j < iC; j++)					// list each object file as a dependency
 	  {
-		ce_gen_make_line(fp, OUT_IF_FULL_F0, &cp);
+		ce_gen_make_line(fp, FA_ADD, &cp);
 		cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " $(objdir)/%s", (spC+j)->sName);
 	  }
-	ce_gen_make_line(fp, OUT_F0, &cp);			// write target and dependencies line
+	ce_gen_make_line(fp, FA_WRITE, &cp);		// write target and dependencies line
 
 	cp+=snprintf(cp, BUFF_S0, " \n\tar rs $(objdir)/%s", (*sp)->sName);
 	for (int j=0; j < iC; j++)					// list each object file as a file to archive
 	  {
-		ce_gen_make_line(fp, OUT_IF_FULL_F0, &cp);
+		ce_gen_make_line(fp, FA_ADD, &cp);
 		cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " $(objdir)/%s", (spC+j)->sName);
 	  }
 	cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\n");
-	ce_gen_make_line(fp, OUT_F0, &cp);			// write library archive line
+	ce_gen_make_line(fp, FA_WRITE, &cp);		// write library archive line
 
 error:
 	if (spC != NULL) free(spC);
@@ -313,7 +311,7 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 	  {
 		if ((spC+j)->iType == CE_HEAD_T0)
 		  {
-			ce_gen_make_line(fp, OUT_IF_FULL_F0, &cp);
+			ce_gen_make_line(fp, FA_ADD, &cp);
 			cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]),
 					" $(includedir)/%s.h", (spC+j)->sName);
 		  }
@@ -342,28 +340,29 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 							"add");
 					if (iC > i)					// object library not already listed so use it?
 					  {
-						ce_gen_make_line(fp, OUT_IF_FULL_F0, &cp);
+						ce_gen_make_line(fp, FA_ADD, &cp);
 						cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " $(objdir)/%s", CEL.sCalls);
 					  }
 				  }
 				else
 				  {
-					ce_gen_make_line(fp, OUT_IF_FULL_F0, &cp);
+					ce_gen_make_line(fp, FA_ADD, &cp);
 					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " $(objdir)/%s", CEL.sName);
 				  }
 			  }
 		  }
 	  }
 
-	cp+=snprintf(cp, BUFF_S0, " \n\t$(GCC) $(CFLAGS) ");	// #TODO defaulting to C
+	ce_gen_make_line(fp, FA_WRITE, &cp);
+	cp+=snprintf(cp, BUFF_S0, "\n\t$(GCC) $(CFLAGS) ");	// #TODO defaulting to C
 
 	if ((*sp)->cMain == CE_MAIN_T0)				// If an executable then find run0time libraries to link with
 	  {
 		cp+=snprintf(cp, BUFF_S0, "$^ -o $@");
-		for (int j=0; j <= iC; j++)							// link with any run-time libraries?
+		for (int j=0; j <= iC; j++)				// link with any run-time libraries?
 			if ((spC+j)->iType == CE_RLIB_T0)
 			  {
-				ce_gen_make_line(fp, OUT_IF_FULL_F0, &cp);
+				ce_gen_make_line(fp, FA_ADD, &cp);
 				cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " -l%s", (spC+j)->sName);
 			  }
 	  }
@@ -371,7 +370,7 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 		cp+=snprintf(cp, BUFF_S0, "-c $< -o $@");
 
 	cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\n");
-	ce_gen_make_line(fp, OUT_F0, &cp);			// write target and dependencies line
+	ce_gen_make_line(fp, FA_WRITE, &cp);		// write target and dependencies line
 
 error:
 	if (spC != NULL) free(spC);
@@ -437,7 +436,7 @@ int main(int argc, char **argv)
 	  {
 		if (sBuff[0] != '#' || sBuff[1] != '~')		// non-marker lines to be written directly to generated file
 		  {
-			ce_gen_make_line(fpN, OUT_F0, &cp);
+			ce_gen_make_line(fpN, FA_WRITE, &cp);
 			continue;
 		  }
 
@@ -447,7 +446,7 @@ int main(int argc, char **argv)
 			snprintf(sBuff, BUFF_S0, "# built on %.2d%.2d%d at %.4d\n",
 					gxt_iDate[0]%100, (gxt_iDate[0]%10000)/100,
 					gxt_iDate[0]/10000, gxt_iTime[0]/100);
-			ce_gen_make_line(fpN, OUT_F0, &cp);
+			ce_gen_make_line(fpN, FA_WRITE, &cp);
 			continue;
 		  }
 
@@ -465,10 +464,10 @@ int main(int argc, char **argv)
 				else if (CE.iType == CE_PROJ_T0 && CE.sSource[0] > '0')			// object library
 					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "$(objdir)/%s ", CE.sSource);
 
-				ce_gen_make_line(fpN, OUT_IF_FULL_F0, &cp);
+				ce_gen_make_line(fpN, FA_ADD, &cp);
 			  }
 			snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\n");			// output remainder of last line or a blank continuation
-			ce_gen_make_line(fpN, OUT_F0, &cp);
+			ce_gen_make_line(fpN, FA_WRITE, &cp);
 		  }
 		else if (memcmp(&sBuff[2], "fun", 3) == 0)				// extract a list of project functions to compile
 		  {
@@ -513,10 +512,10 @@ int main(int argc, char **argv)
 				else if (CE.iType == CE_PROG_T0 && CE.cMain == CE_MAIN_T0)
 					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "$(bindir)/%s ", CE.sName);
 
-				ce_gen_make_line(fpN, OUT_IF_FULL_F0, &cp);
+				ce_gen_make_line(fpN, FA_ADD, &cp);
 			  }
 			snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\n");			// output remainder of last line or a blank continuation
-			ce_gen_make_line(fpN, OUT_F0, &cp);
+			ce_gen_make_line(fpN, FA_WRITE, &cp);
 
 			ut_check(cef_main(FA_RESET, 0) == FA_OK_IV0, "reset");
 
@@ -541,7 +540,7 @@ int main(int argc, char **argv)
 				if (cp > sBuff)
 				  {
 					snprintf(cp, BUFF_S0, "\tsudo cp $^ $@\n");
-					ce_gen_make_line(fpN, OUT_F0, &cp);
+					ce_gen_make_line(fpN, FA_WRITE, &cp);
 				  }
 			  }
 		  }
@@ -564,7 +563,7 @@ int main(int argc, char **argv)
 				else if (CE.iType == CE_PROG_T0 && CE.cMain == CE_MAIN_T0)
 					snprintf(sBuff, BUFF_S0, "\tsudo rm $(bindir)/%s\n", CE.sName);
 
-				if (sBuff[0] != 0) ce_gen_make_line(fpN, OUT_F0, &cp);
+				if (sBuff[0] != 0) ce_gen_make_line(fpN, FA_WRITE, &cp);
 			  }
 		  }
 		else

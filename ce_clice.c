@@ -25,29 +25,28 @@
 //--------------------------------------------------------------
 
 #define	CE_PROJ_LIST_S0 (CE_PROJECT_S0+3+CE_DESC_S0)	// width of project list
+#define CE_PROJ_MENU_M0 5
 
 void ce_clice_project(int const iProjCount)
   {
 	int	i;
 	int	iOpt;						// selected menu option
 	int iPos;						// position within a search list
-	char sBuff[CE_PROJ_LIST_S0+10];	// string buffer
-
-	char sProjMenu[5][24] =	{			// Project menu template
+	char sBuff[CE_PROJ_LIST_S0+10],	// string buffer
+		*cpProjMenu[CE_PROJ_MENU_M0] =	{			// Project menu template
 					"1) Next",
 					"2) Previous",
 					"3) Generate a makefile",
 					"!4) Make all",
 					"!5) Make install"},
-		*cpProjMenu[6],
-		sProj3[] = {"!3) makefile has been generated"};
-	char **cpList;					// pointers to a list of projects to list
-	char *cp;						// pointer to memory for project name list
+		*cpMenu[CE_PROJ_MENU_M0+1],	// pointers to the menu to be displayed
+		**cpList,					// pointers to a list of projects to list
+		*cp;						// pointer to memory for project name list
 
 
 	ut_check((cpList = malloc((sizeof(char *)*iProjCount)+1)) != NULL &&
 			 (cp = malloc(iProjCount*CE_PROJ_LIST_S0)) != NULL,
-			"malloc error");
+			"memory error");
 
 	CE.bmField=CEF_PROJECT_B0+CEF_DESC_B0;		// Read all projects in the clice db
 	CEL.bmField=0;
@@ -70,9 +69,9 @@ void ce_clice_project(int const iProjCount)
 
 	if (iOpt != NC_QUIT)
 	  {
-		for (i=0; i < 5; ++i)
-			cpProjMenu[i]=&sProjMenu[i][0];		// load pointers to menu
-		cpProjMenu[5]=NULL;
+		for (i=0; i < CE_PROJ_MENU_M0; ++i)
+			cpMenu[i]=cpProjMenu[i];			// load pointers to menu
+		cpMenu[i]=NULL;
 	  }
 
 	while (iOpt != NC_QUIT)
@@ -82,21 +81,24 @@ void ce_clice_project(int const iProjCount)
 					"Project:%s",
 					cpList[iPos-1]);			// display selected project
 
-		iOpt=nc_menu(sBuff, cpProjMenu);		// menu of project actions
+		iOpt=nc_menu(sBuff, cpMenu);			// menu of project actions
 		switch (iOpt)
 		  {
 			case 1:								// Next item
 				if (iPos < iProjCount) iPos++;
-				cpProjMenu[2]=&sProjMenu[2][0];	// reset options to standard template
+				cpMenu[2]=cpProjMenu[2];		// reset options to standard template
 				break;
 			case 2:								// Previous item
 				if (iPos-1 > 0) iPos--;
-				cpProjMenu[2]=&sProjMenu[2][0];	// reset options to standard template
+				cpMenu[2]=cpProjMenu[2];		// reset options to standard template
 				break;
 			case 3:								// Generate a makefile
 				sprintf(sBuff, "./ce_gen_make --project=%s", cpList[iPos-1]);
 				if (system(sBuff) == 0)
-					cpProjMenu[2]=&sProj3[0];	// change menu line to show success
+				  {
+					char *cpProj3 = {"!3) makefile has been generated"};
+					cpMenu[2]=cpProj3;			// change menu line to show success
+				  }
 				break;
 			case 4:
 //				ce_make_all();
@@ -161,7 +163,7 @@ void ce_clice_module(int iCount)
 			 (cp2 = malloc(0)) != NULL &&
 			 (ip1 = malloc(sizeof(int)*iCount)) != NULL &&
 			 (ip2 = malloc(0)) != NULL,
-			"malloc error");
+			"memory error");
 
 	CE.bmField=CEF_ID_B0+CEF_NAME_B0;			// What to read from the ce database
 	CEL.bmField=0;
@@ -237,38 +239,38 @@ void ce_clice_module(int iCount)
 		CEL.bmField=CEF_LINK_COUNT_B0;
 		for (i=0; i < CE_MOD_MENU_M0; i++)
 		  {
-			if (i == 2 || i == 3)
+			if (i < 2 || i > 3)
 			  {
-				if (i == 2)
-				  {
-					CEL.iNtype=CE.iType;			// type of current item
-					for (j=0; cp1[((iPos-1)*CE_MOD_LIST_S0)+j] > ' '; j++)
-							CEL.sName[j]=cp1[((iPos-1)*CE_MOD_LIST_S0)+j];
-					CEL.sName[j]='\0';
-					ut_check(cef_main(FA_COUNT,
-						"cl.name = % AND cl.ntype = %") == FA_OK_IV0,	// prepare a select of all modules linked
-						"Count links to");			// to or jump to error: if fails.
-					iCountTo=CE.iCount;
-				  }
-				else
-				  {
-					CEL.iCtype=CE.iType;			// type of current item
-					for (j=0; cp1[((iPos-1)*CE_MOD_LIST_S0)+j] > ' '; j++)
-							CEL.sCalls[j]=cp1[((iPos-1)*CE_MOD_LIST_S0)+j];
-					CEL.sCalls[j]='\0';
-					ut_check(cef_main(FA_COUNT,
-						"cl.calls = % AND cl.ctype = %") == FA_OK_IV0,	// prepare a select of all modules linked
-						"Count links from");		// from or jump to error: if fails.
-					iCountFrom=CE.iCount;
-				  }
-				j=0;
-				if (CE.iCount <= 0) cMenu[i-2][j++]='!';	// No links so disable this option
-				j+=sprintf (&cMenu[i-2][j], "%s", *(cpModMenu+i));
-				if (CE.iCount > 0) sprintf (&cMenu[i-2][j], " [%d]", CE.iCount);
-				cpMenu[i]=cMenu[i-2];
+				cpMenu[i]=cpModMenu[i];
+				continue;
+			  }
+
+			if (i == 2)
+			  {
+				CEL.iNtype=CE.iType;			// type of current item
+				for (j=0; cp1[((iPos-1)*CE_MOD_LIST_S0)+j] > ' '; j++)
+						CEL.sName[j]=cp1[((iPos-1)*CE_MOD_LIST_S0)+j];
+				CEL.sName[j]='\0';
+				ut_check(cef_main(FA_COUNT,
+					"cl.name = % AND cl.ntype = %") == FA_OK_IV0,	// prepare a select of all modules linked
+					"Count links to");			// to or jump to error: if fails.
+				iCountTo=CE.iCount;
 			  }
 			else
-				cpMenu[i]=cpModMenu[i];
+			  {
+				CEL.iCtype=CE.iType;			// type of current item
+				for (j=0; cp1[((iPos-1)*CE_MOD_LIST_S0)+j] > ' '; j++)
+						CEL.sCalls[j]=cp1[((iPos-1)*CE_MOD_LIST_S0)+j];
+				CEL.sCalls[j]='\0';
+				ut_check(cef_main(FA_COUNT,
+					"cl.calls = % AND cl.ctype = %") == FA_OK_IV0,	// prepare a select of all modules linked
+					"Count links from");		// from or jump to error: if fails.
+				iCountFrom=CE.iCount;
+			  }
+			cp=cpMenu[i]=cMenu[i-2];
+			if (CE.iCount <= 0) *(cp++)='!';	// No links so disable this option
+			cp+=sprintf (cp, "%s", *(cpModMenu+i));
+			if (CE.iCount > 0) sprintf (cp, " [%d]", CE.iCount);
 		  }
 		cpMenu[i]=NULL;
 
@@ -413,11 +415,11 @@ void ce_clice_module(int iCount)
 				nc_message("Item has been removed from the clice db");
 				sleep(2);
 
-				iOpt=NC_QUIT;				// change action to ensure menus behave
+				iOpt=NC_QUIT;			// change action to ensure menus behave
 
 				break;
 
-			case NC_QUIT:					// Quit item display
+			case NC_QUIT:				// Quit item display
 				if (iCount > 1)			// if only 1 hit then quit to main menu else
 				  {
 					iPos=nc_menu("Select required entry",
@@ -446,7 +448,6 @@ error:
 
 int main(int argc, char **argv)
   {
-	int	i;
 	int	iOpt = -1;				// selected menu option
 	int	iProjCount;				// project count
 
@@ -456,7 +457,8 @@ int main(int argc, char **argv)
 					"3) My Header files",
 					"4) System Functions",
 					"5) System Headers",
-			NULL};
+			NULL},
+		*cp;					// general char pointer
 
 	char cMenu[CE_SYSH_T0+1][30];	// currently one menu item per module type with system headers the last (SYSH)
     char *cpList[CE_SYSH_T0+2];		// +2 to allow for a null pointer to terminate the menu list
@@ -476,11 +478,10 @@ int main(int argc, char **argv)
 		for (CE.iType=CE_PROJ_T0; CE.iType <= CE_SYSH_T0; CE.iType++)
 		  {
 			cef_main(FA_COUNT, "ce.type = %");	// Create menu with up to date counts of module types
-			i=0;
-			if (CE.iCount <= 0) cMenu[CE.iType][i++]='!';	// No items so disable this option
-			i+=sprintf (&cMenu[CE.iType][i], "%s", *(cpMainMenu+CE.iType));
-			if (CE.iCount > 0) sprintf (&cMenu[CE.iType][i], " [%d]", CE.iCount);
-			cpList[CE.iType]=cMenu[CE.iType];
+			cp=cpList[CE.iType]=cMenu[CE.iType];
+			if (CE.iCount <= 0) *(cp++)='!';	// No items so disable this option
+			cp+=sprintf(cp, "%s", *(cpMainMenu+CE.iType));
+			if (CE.iCount > 0) sprintf(cp, " [%d]", CE.iCount);
 			if (CE.iType == CE_PROJ_T0) iProjCount=CE.iCount;
 		  }
 		cpList[CE.iType]=NULL;
@@ -500,7 +501,7 @@ int main(int argc, char **argv)
 				nc_input(	"Select required module",
 							CE.sName,
 							CE_NAME_S0-1);					// input name to look for in clice db
-				i=strnlen(CE.sName, CE_NAME_S0-1);
+				int i=strnlen(CE.sName, CE_NAME_S0-1);
 				if (i < CE_NAME_S0-1) CE.sName[i++]='%';	// if room add a default wildcard
 				CE.sName[i]='\0';
 
