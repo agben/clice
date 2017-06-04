@@ -23,7 +23,7 @@
 # ce_clice.c      ce_edit.sh             [Project source files, each starting with the project prefix in lowercase]
 #
 #
-# Usage:	edc			change your working directory to your coding root directory
+# Usage:edc				change your working directory to your coding root directory
 #		edc ce			change your working directory to the CE project
 #		edc ce_edit.sh		change your working directory and give you options to edit, compile, etc... the given filename
 #					It will be easier to provide the full filename if ce_complete.sh is used for bash completion
@@ -61,8 +61,10 @@ CE_LANG="$(echo ${CE_FNAM#*.}|tr [a-z] [A-Z])"		# determine source language from
 
 # Check file extension against supported languages
 case "$CE_LANG" in
-# F)				# FORTRAN. The .f extension assumes fixed format whereas .f95 is free format
+# F)			# FORTRAN. The .f extension assumes fixed format whereas .f95 is free format
 # ;;
+ ASM|HSM)		# assembly source and header files.
+ ;;
  [CH])			# C. The .c for program code and the .h for included library files
  ;;
  TXT)			# text files. Usually documentation notes
@@ -106,6 +108,9 @@ case $CE_EDD in
 esac
 
 case "$CE_LANG" in
+ ASM)									# Requires assembling?
+	read -p "ASSEMBLE (Y) " CE_CO
+ ;;
  [FC])									# Requires compiling?
 	read -p "COMPILE (Y/d/D) " CE_CO
 	if [[ $CE_CO == "d" ]]
@@ -133,34 +138,23 @@ CE_ONAM="${GXT_CODE_OBJECT}/${CE_PROGN}.o"		# object files full name
 case $CE_CO in
  [Yy])
 	case "$CE_LANG" in
-#	  F)					# Fortran complier options
-							# -c = compile and assemble but don't link
-							# -fmax-errros = limit number of compile errors displayed
-							# -fno-underscoring = don't tag an underscore to the end of object
-							#	filenames. It prevents linking to C objects
-							# -I = where INCLUDE will look for files
-							# -L = location of my libraries
-							# -l = libraries to link against
-							# -Wall = I want to see all warnings
-#TODO need a test for a program or subroutine/function
-#			gfortran	\
-#					-c	\
-#					-Wall	\
-#					-Wtabs	\
-#					-L "/home/ben/Code/Obj" \
-#					-fmax-errors=5 \
-#					-fno-underscoring \
-#					$CE_FNAM	\
-#					-lrt \
-#					-lsubs \
-#					-lsqlite3 \
-#					-o $CE_ONAM
-#    ;;
+	  ASM)					# Assembler options
+							# -f = output format. bin = flat binary file
+							# -w = warnings. I want to see all warnings
+							# -o = output file
+		nasm \
+			-f bin \
+			-w+all	\
+			$CE_FNAM \
+			-o $CE_ONAM
+	  ;;
 
 	  C)					# C complier options
+							# -c = compile and assemble but don't link
+							# -D = debug option
+							# -std = standard of C applied - GNU 2011
 							# -Wall = I want to see all warnings
 							# -o = output file
-							# -l = libraries to compile against
 		gcc \
 			-D$GXT_DEBUG \
 			-c	\
@@ -173,10 +167,13 @@ case $CE_CO in
 
 	if [ -f "$CE_ONAM" ]							# sucessfully created an object file?
 	 then
-#		nm -t d -f posix $CE_ONAM >> $CE_PROGN.ce	# Analyse obj file read for CE
-		objdump -rtl $CE_ONAM > $CE_PROGN.ce		# Analyse obj file read for CE
-		ce_scan_obj $CE_PROGN						# Scan links to other modules for CE
-		rm $CE_PROGN.ce
+		case "$CE_LANG" in
+		  C)										# C object file analysis
+			objdump -rtl $CE_ONAM > $CE_PROGN.ce	# Analyse obj file read for clice
+			ce_scan_obj $CE_PROGN					# Scan links to other modules for clice
+			rm $CE_PROGN.ce
+		  ;;
+		esac
 	fi
  ;;
 esac
