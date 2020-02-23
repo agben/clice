@@ -3,7 +3,7 @@
 # project config editor for clice (CE) - the command line coding ecosystem
 #
 # Setup:	alias to a command name in your .bashrc
-#			i.e. edo '. ce_edit_project.sh'
+#			i.e. edp '. ce_edit_project.sh'
 #			use '. ' to run in the current shell to benefit from directory and flag changes
 #			update and run ce_setup.sh to configure clice settings
 # Usage:	edp ce
@@ -18,7 +18,7 @@ CE_CLICEFILE=".$(echo $CE_PROJECT|tr [A-Z] [a-z]).clice"
 if [ -z $CE_PROJECT ]
  then
 	cd "${GXT_CODE_HOME}"
-	"${EDITOR:-nano}" .master.clice
+	"${EDITOR:-nano}" .template.clice
 
 elif [ -d "${GXT_CODE_HOME}/${CE_PROJECT}" ]
  then
