@@ -179,11 +179,12 @@ int cef_main(int bmAction, char *cpSQL)
 					if (cef_main(FA_READ+FA_STEP,
 							"cl.calls = % AND cl.ctype = %") != FA_OK_IV0)
 					  {								// nothing else is linked to this item
+						printf("CE: %s is no longer referenced ", CEL.sCalls);
 						if (CEL.iCtype < CE_SYSF_T0)		// if a locally created function or header then you may wish to keep?
-							printf("    it is no longer referenced so use clice if you wish to delete it.\n");
+							printf("so use clice if you wish to delete it.\n");
 						else								// for system items we can decide to auto delete
 						  {
-							printf("    it is no longer referenced and so removed from clice.\n");
+							printf("and so removed from clice.\n");
 							memcpy(CE.sName, sModule[i], CE_NAME_S0);
 							CE.iType=iType[i];
 
@@ -241,6 +242,7 @@ int cef_main(int bmAction, char *cpSQL)
 		else										// exists so update last modified date/time
 		  {
 			CE.bmField=CEF_LAST_MOD_B0+CEF_DESC_B0;	// and description (in case changed)
+			if (CE.cLang == 'A') CE.bmField+=CEF_CODE_B0;	// and assembly register summary may also
 			ios=FA_UPDATE;							// update CE module in db
 		  }
 		ios=cef_main(ios, 0);						// add/update CE module in db

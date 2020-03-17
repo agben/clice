@@ -385,7 +385,8 @@ int main(int argc, char **argv)
   {
 						// spE, iE, iEmax = extracted clice db entries for selected project
 						// spC, iC, iCmax = called functions and included headers
-	struct CE_EXTRACT *spE, *sp;
+	struct CE_EXTRACT *spE = NULL,
+					  *sp;
 	int iE = 0;				// count of modules for selected project
 	int iEmax = 50;
 

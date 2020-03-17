@@ -93,7 +93,7 @@ void ce_clice_project(int const iProjCount)
 				cpMenu[2]=cpProjMenu[2];		// reset options to standard template
 				break;
 			case 3:								// Generate a makefile
-				sprintf(sBuff, "./ce_gen_make --project=%s", cpList[iPos-1]);
+				sprintf(sBuff, "ce_gen_make --project=%s", cpList[iPos-1]);
 				if (system(sBuff) == 0)
 				  {
 					char *cpProj3 = {"!3) makefile has been generated"};
@@ -202,13 +202,24 @@ void ce_clice_module(int iCount)
 					break;
 				  }
 				if (CE.cLang == 'C' || CE.cLang == 'H')
+				  {
 					sType[0] = 'C';
-				if (CE.iType == CE_PROG_T0)
-					sprintf(&sType[1]," program");
-				else if (CE.iType == CE_HEAD_T0)
-					sprintf(&sType[1]," header");
+					i=1;
+				  }
+				else if (CE.cLang == 'A' || CE.cLang == 'G')
+					i=sprintf(&sType[0],"Assembly");
 				else
-					sprintf(&sType[1]," unknown");
+				  {
+					sType[0] = '?';
+					i=1;
+				  }
+
+				if (CE.iType == CE_PROG_T0)
+					sprintf(&sType[i]," program");
+				else if (CE.iType == CE_HEAD_T0)
+					sprintf(&sType[i]," header");
+				else
+					sprintf(&sType[i]," unknown");
 				break;
 			case CE_SYSF_T0:
 				sprintf(&sType[0],"system function");
@@ -230,10 +241,7 @@ void ce_clice_module(int iCount)
 			j+=snprintf(&sBuff[j], sizeof(sBuff)-j, "%s", CE.sDesc);
 		sBuff[j++]='\n';
 
-		if (CE.iType > CE_HEAD_T0 || CE.cLang == 'H' || CE.cLang == 'S')
-			sBuff[j++]='\0';				// no example code to display for header or script files
-		else
-			j+=snprintf(&sBuff[j], sizeof(sBuff)-j, "%s", CE.sCode);
+		j+=snprintf(&sBuff[j], sizeof(sBuff)-j, "%s", CE.sCode);
 
 		CE.bmField=0;						// Count how many items link to/from this module
 		CEL.bmField=CEF_LINK_COUNT_B0;
@@ -334,12 +342,11 @@ void ce_clice_module(int iCount)
 							(i == CE_HEAD_T0) ?	"header":
 							(i == CE_SYSF_T0) ?	"system function":
 							(i == CE_SYSH_T0) ?	"system Header":
-												"unknown");
+												"unknown");		// #TODO should show as program (i.e. CE.cMain='m') or function?
 					j=strnlen(cp, CE_NAME_S0);
 					if (j > iLen) iLen=j;			// check if this is the longest name?
 
-					ip2[iHits]=0;					// Will determine if each called item exists in clice later
-					iHits++;
+					ip2[iHits++]=0;					// Will determine if each called item exists in clice later
 				  }
 
 				cpList[iHits]=NULL;					// mark end of search results list

@@ -26,8 +26,11 @@
 # Usage:edc				change your working directory to your coding root directory
 #		edc ce			change your working directory to the CE project
 #		edc ce_edit.sh		change your working directory and give you options to edit, compile, etc... the given filename
-#					It will be easier to provide the full filename if ce_complete.sh is used for bash completion
+#						It will be easier to provide the full filename if ce_complete.sh is used for bash completion
 #						.i.e. partially type a name and press tab to complete it
+#
+# Notes:
+#	Assembly	-	As I'm currently writing assembly for an independent OS then all outputs are binary but held in the Obj folder
 
 
 cd "$GXT_CODE_HOME"
@@ -86,6 +89,9 @@ case $CE_EDD in
 	if [ -f "$CE_FNAM"~ ]				# If created a new version, move the previous to the Backup folder
 	 then
 		case "$CE_LANG" in
+		 ASM|HSM)						# assembly source and header files.
+			ce_scan_asm $CE_FNAM		# Update clice with source code details
+		 ;;
 		 [CH])							# .c c programs or .h c library files
 			ctags --c-kinds=f -x $CE_FNAM > $CE_PROGN.ce	# scan source code for C symbols
 			ce_scan_c $CE_FNAM			# Update clice to show new version created
@@ -133,23 +139,25 @@ case "$CE_LANG" in
  ;;
 esac
 
-CE_ONAM="${GXT_CODE_OBJECT}/${CE_PROGN}.o"		# object files full name
-
 case $CE_CO in
  [Yy])
 	case "$CE_LANG" in
 	  ASM)					# Assembler options
+		CE_ONAM="${GXT_CODE_OBJECT}/${CE_PROGN}.bin"		# binary output filename
 							# -f = output format. bin = flat binary file
 							# -w = warnings. I want to see all warnings
 							# -o = output file
+#			-M \
 		nasm \
+			-o $CE_ONAM \
+			-MD $CE_PROGN.ce \
 			-f bin \
 			-w+all	\
-			$CE_FNAM \
-			-o $CE_ONAM
+			$CE_FNAM
 	  ;;
 
 	  C)					# C complier options
+		CE_ONAM="${GXT_CODE_OBJECT}/${CE_PROGN}.o"		# object files full name
 							# -c = compile and assemble but don't link
 							# -D = debug option
 							# -std = standard of C applied - GNU 2011
@@ -165,10 +173,23 @@ case $CE_CO in
      ;;
 	esac
 
+
 	if [ -f "$CE_ONAM" ]							# sucessfully created an object file?
 	 then
 		case "$CE_LANG" in
+#		  ASM)										# Assembler object file analysis
+													# objdump options
+													# -b = object file format
+													# -r = show code relocation entries
+													# -s = show the symbolic table
+													# -l = label output with line numbers
+#			objdump -b binary -rtl $CE_ONAM > $CE_PROGN.ce	# Analyse obj file read for clice
+#		  ;;
 		  C)										# C object file analysis
+													# objdump options
+													# -r = show code relocation entries
+													# -s = show the symbolic table
+													# -l = label output with line numbers
 			objdump -rtl $CE_ONAM > $CE_PROGN.ce	# Analyse obj file read for clice
 			ce_scan_obj $CE_PROGN					# Scan links to other modules for clice
 			rm $CE_PROGN.ce
