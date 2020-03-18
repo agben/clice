@@ -119,8 +119,9 @@ int main(int argc, char **argv)
 							sBuff[i] != '\n' &&
 							sBuff[i] != '.'; i++)
 					sHeader[iHeader][j++]=sBuff[i];
-				for (; j < CE_NAME_S0; j++)
-					sHeader[iHeader][j]='\0'; 	// null fill remainder of string
+				sHeader[iHeader][j]='\0';	 	// null terminate string
+//				for (; j < CE_NAME_S0; j++)
+//					sHeader[iHeader][j]='\0'; 	// null fill remainder of string
 				iHeader++;
 			  }
 		  }
@@ -157,7 +158,8 @@ int main(int argc, char **argv)
 						CE.sSource[i] != '\0' &&
 						CE.sSource[i] != '.'; i++)
 			CE.sName[i]=CE.sSource[i];
-		for (; i < CE_NAME_S0; i++) CE.sName[i]='\0';	// null fill remainder of string
+		CE.sName[i]='\0';						// null terminate string
+//		for (; i < CE_NAME_S0; i++) CE.sName[i]='\0';	// null fill remainder of string
 
 		ut_check(cef_main(FA_ADD, 0) == FA_OK_IV0, "h add CE");
 
@@ -186,13 +188,14 @@ int main(int argc, char **argv)
 					for (j = 0; j < CE_NAME_S0 &&
 							CE.sSource[j] != '\0' &&
 							CE.sSource[j] != '.'; j++)
-					CE.sName[j]=CE.sSource[j];				// #TODO warn and ignore names that are too long
+					CE.sName[j]=CE.sSource[j];					// #TODO warn and ignore names that are too long
 				  }
 				else
 					for (j=0; j < (CE_NAME_S0-1) &&
-									sBuff[j] != ' '; j++)	// otherwise copy the item name
+									sBuff[j] != ' '; j++)		// otherwise copy the item name
 						CE.sName[j]=sBuff[j];
-				for (; j < CE_NAME_S0; j++) CE.sName[j]='\0';	// null fill remainder of string
+				CE.sName[j]='\0';								// null terminate string
+//				for (; j < CE_NAME_S0; j++) CE.sName[j]='\0';	// null fill remainder of string
 
 				i+=8;											// skip function
 				for (; i < BUFF_S0 && sBuff[i] == ' '; i++);	// skip past following spaces
@@ -211,8 +214,9 @@ int main(int argc, char **argv)
 						CE.sCode[j]=sBuff[i];
 					i++;
 				  }
-				for (; j < CE_CODE_LINE_S0; j++)
-							CE.sCode[j]='\0'; 					// null fill remainder of string
+				CE.sCode[j]='\0';			 					// null terminate string
+//				for (; j < CE_CODE_LINE_S0; j++)
+//							CE.sCode[j]='\0'; 					// null fill remainder of string
 
 				ut_check(cef_main(FA_ADD, 0) == FA_OK_IV0,
 							"f add CE");							// update clice db

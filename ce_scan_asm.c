@@ -221,8 +221,8 @@ int main(int argc, char **argv)
 				strncpy(CE.sName,
 						sBuff,
 						i);
-				for (; i < CE_NAME_S0; i++)
-					CE.sName[i]='\0';			// null fill remainder of string
+//				for (; i < CE_NAME_S0; i++)
+//					CE.sName[i]='\0';			// null fill remainder of string
 			  }
 		  }
 		else
@@ -245,8 +245,9 @@ int main(int argc, char **argv)
 								sBuff[i] != '.' &&
 								sBuff[i] != '\n'; i++)
 						sModule[iModule][j++]=sBuff[i];
-					for (; j < CE_NAME_S0; j++)
-						sModule[iModule][j]='\0'; 		// null fill remainder of string
+					sModule[iModule][j]='\0'; 			// null terminate string
+//					for (; j < CE_NAME_S0; j++)
+//						sModule[iModule][j]='\0'; 		// null fill remainder of string
 					if (sBuff[i] == '.' &&
 						sBuff[i+1] == 'h') iModule++;	// ignore all but .hsm header files
 				  }
@@ -262,8 +263,9 @@ int main(int argc, char **argv)
 					j=0;
 					while (j < CE_NAME_S0 && sBuff[i] > ' ')
 						sModule[iModule][j++]=sBuff[i++];
-					for (; j < CE_NAME_S0; j++)
-						sModule[iModule][j]='\0'; 		// null fill remainder of string
+					sModule[iModule][j]='\0'; 			// null terminate string
+//					for (; j < CE_NAME_S0; j++)
+//						sModule[iModule][j]='\0'; 		// null fill remainder of string
 					iModule++;
 				  }
 			  }

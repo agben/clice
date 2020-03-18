@@ -74,7 +74,8 @@ int main(int argc, char **argv)
 							CE.sSource[i] != '\0' &&
 							CE.sSource[i] != '.'; i++)
 					sSource[i]=CE.sSource[i];					// keep source name for use in next section
-				for (; i < CE_NAME_S0; i++) sSource[i]='\0';	// null fill remainder of string
+				sSource[i]='\0';								// null terminate string
+//				for (; i < CE_NAME_S0; i++) sSource[i]='\0';	// null fill remainder of string
 			  }
 			else if (sBuff[0] == '0')				// a symbol definition?
 			  {
@@ -96,8 +97,9 @@ int main(int argc, char **argv)
 
 						CE.sSource[i]=sBuff[j++];
 					  }
-					for ( ; i < CE_SOURCE_S0; i++)
-						CE.sSource[i]='\0';			// null fill remainder of string
+					CE.sSource[i]='\0';							// null terminate string
+//					for ( ; i < CE_SOURCE_S0; i++)
+//						CE.sSource[i]='\0';			// null fill remainder of string
 
 					if (CE.cLang == '?')
 						printf("CE: No valid file extension found\n");
@@ -113,7 +115,8 @@ int main(int argc, char **argv)
 					else
 						for (i=0; i < CE_NAME_S0 && sBuff[j] != '\n'; i++)	// sBuff will have a line feed before a terminating null
 							CE.sName[i]=sBuff[j++];
-					for ( ; i < CE_NAME_S0; i++) CE.sName[i]='\0';	// null fill remainder of string
+					CE.sName[i]='\0';								// null terminate string
+//					for ( ; i < CE_NAME_S0; i++) CE.sName[i]='\0';	// null fill remainder of string
 
 					if (iFunc < CE_MODULE_M0-1)
 						memcpy(sFunc[iFunc++], CE.sName, CE_NAME_S0);	// keep a list of written function names
@@ -176,8 +179,9 @@ int main(int argc, char **argv)
 					for (i=0; i < CE_NAME_S0 &&
 							sBuff[j] != '\n'; i++)			// sBuff will have a line feed before it terminating null
 						sModule[iModule][i]=sBuff[j++];
-					for ( ; i < CE_NAME_S0; i++)
-						sModule[iModule][i]='\0';			// null fill remainder of string
+					sModule[iModule][i]='\0';				// null terminate string
+//					for ( ; i < CE_NAME_S0; i++)
+//						sModule[iModule][i]='\0';			// null fill remainder of string
 					iModule++;
 				  }
 			  }
@@ -196,8 +200,9 @@ int main(int argc, char **argv)
 							sBuff[j] != '+' &&
 							sBuff[j] != '-'; i++)		// sBuff will have a line feed before it terminating null
 					CEL.sCalls[i]=sBuff[j++];
-				for ( ; i < CE_NAME_S0; i++)
-					CEL.sCalls[i]='\0';					// null fill remainder of string
+				CEL.sCalls[i]='\0';						// null terminate string
+//				for ( ; i < CE_NAME_S0; i++)
+//					CEL.sCalls[i]='\0';					// null fill remainder of string
 
 				for (i=0; i < iModule &&
 						strncmp(CEL.sCalls, sModule[i], CE_NAME_S0) != 0;
@@ -221,7 +226,8 @@ int main(int argc, char **argv)
 					for (i=0; i < CE_NAME_S0 &&
 								sBuff[i] != '('; i++)	// update current module name
 						CEL.sName[i]=sBuff[i];
-					for (; i < CE_NAME_S0; i++) CEL.sName[i]='\0';		// null fill remainder of string
+					CEL.sName[i]='\0';					// null terminate string
+//					for (; i < CE_NAME_S0; i++) CEL.sName[i]='\0';		// null fill remainder of string
 				  }
 			  }
 		  }

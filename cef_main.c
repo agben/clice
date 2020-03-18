@@ -17,7 +17,7 @@
 //		an opportunity to insert triggers relevant to the application (i.e. audit updates) and for database data to under-go
 //		any necessary conversions before use by the calling application (i.e. a date column in a database table could be
 //		converted into different formats ready for use by the calling app)
-//		Local acions for this function include:
+//		Local actions for this function include:
 //			FA_LINK	- Update or create a CEL link row to show the relationship between two CE items.
 //						The CEL columns need to be setup ready to add or update a row.
 //			FA_PURGE- Remove CEL link rows that don't match the CEL timestamp
@@ -52,10 +52,8 @@ int cef_main(int bmAction, char *cpSQL)
 	  {
 		CET[CE_MAIN_TABLE_P0].bmField = CE.bmField;		// In this example database columns match the CE and CEL structures used in
 		CET[CE_LINK_TABLE_P0].bmField = CEL.bmField;	//	clice so no conversions are required.
-//		CET[CE_MAIN_TABLE_P0].bmField = CEF_COUNT_B0;	// All counts go to the same meta field
-//		CET[CE_LINK_TABLE_P0].bmField = 0;
-		i=FA_COUNT+FA_READ+FA_STEP;
-		ios=fa_handler(i, &CEB, cpSQL);
+//		i=FA_COUNT+FA_READ+FA_STEP;
+		ios=fa_handler(FA_COUNT+FA_READ+FA_STEP, &CEB, cpSQL);
 	  }
 	else if (bmAction & FA_LINK)						// Record a link between two CE items
 	  {
@@ -197,9 +195,9 @@ int cef_main(int bmAction, char *cpSQL)
 			  }
 		  }
 	  }
-	else if (bmAction & FA_ADD)						// Adding or updating a new clice module
+	else if (bmAction & FA_ADD)									// Adding or updating a new clice module
 	  {
-		CE.bmField=CEF_ID_B0;						// only need to read ID to confirm if this module exists in CE
+		CE.bmField=CEF_ID_B0;									// only need to read ID to confirm if this module exists in CE
 		CEL.bmField=0;
 		if (cef_main(FA_READ+FA_STEP,
 			"ce.name = % AND ce.type = %") == FA_NODATA_IV0)	// module not found so create a new CE module
@@ -209,7 +207,7 @@ int cef_main(int bmAction, char *cpSQL)
 			else
 				printf("CE: New program file added - %s\n", CE.sName);
 
-			CE.iType+=2;							// check if this module has been setup as a system function/header?
+			CE.iType+=2;										// check if this module has been setup as a system function/header?
 			if (cef_main(FA_READ+FA_STEP,
 				"ce.name = % AND ce.type = %") == FA_OK_IV0)	// it has, so needs converting to a local function/header
 			  {
