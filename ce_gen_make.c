@@ -145,6 +145,7 @@ error:
 
 int ce_gen_make_source(struct CE_EXTRACT **sp, int *i, int *iMax, const char *sName, const int iType)
   {
+	if (iType == CE_SRCE_T0) return 0;								// no need to find the source for a source file
 	CE.bmField=CEF_SOURCE_B0;
 	CEL.bmField=0;
 	memcpy(	CE.sName,
@@ -289,9 +290,16 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 							"add");
 			  }
 		  }
-
-		cp+=snprintf(cp, BUFF_S0, "%s: %s.%c",
-			(*sp)->sName, (*sp)->sName, tolower((*sp)->cLang));	// add target and source dependency for executables
+																	// add target and source dependency for executables
+		if ((*sp)->cLang == 'A')									// an assembly language binary?
+			cp+=snprintf(cp, BUFF_S0, "%s.bin: %s.asm",
+				(*sp)->sName, (*sp)->sName);
+		else if ((*sp)->cLang == 'C')								// a C language executable?
+			cp+=snprintf(cp, BUFF_S0, "%s: %s.c",
+				(*sp)->sName, (*sp)->sName);
+		else														// unknown language?
+			cp+=snprintf(cp, BUFF_S0, "%s: %s.?",
+				(*sp)->sName, (*sp)->sName);
 
 		iDirect=iC;								// executable so needs to link with all recursive routines
 	  }
@@ -299,12 +307,14 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 	ce_gen_make_source(&spC, &iC, &iCmax, (*sp)->sName,
 						(*sp)->iType);			// add source to list to prevent repeat dependencies for any internal functions
 
-	if ((*sp)->cMain != CE_MAIN_T0)				// add target and source dependency for functions
+	if ((*sp)->cMain != CE_MAIN_T0)									// Not an executable so a subroutine/function
 	  {
+		if ((*sp)->cLang == 'A') goto error;						// don't process assembly sub-routines
+
 		int i;
 		for (i=0; i < CE_NAME_S0 && CE.sSource[i] != '.'; i++);
 		cp+=snprintf(cp, BUFF_S0, "$(objdir)/%.*s.o: %s",
-			i, CE.sSource, CE.sSource);
+			i, CE.sSource, CE.sSource);								// add target and source dependency for functions
 	  }
 
 	for (int j=0; j < iDirect; j++)
@@ -312,7 +322,12 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 		if ((spC+j)->iType == CE_HEAD_T0)
 		  {
 			ce_gen_make_line(fp, FA_ADD, &cp);
-			cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]),
+
+			if ((*sp)->cLang == 'A')								// assembly headers currently kept in the source directory
+				cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]),
+					" %s.hsm", (spC+j)->sName);
+			else													// other headers are kept in the include directory e.g. /usr/local/include
+				cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]),
 					" $(includedir)/%s.h", (spC+j)->sName);
 		  }
 		else if ((spC+j)->iType == CE_PROG_T0)
@@ -347,30 +362,42 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 				else
 				  {
 					ce_gen_make_line(fp, FA_ADD, &cp);
-					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " $(objdir)/%s", CEL.sName);
+					if ((*sp)->cLang == 'A')								// assembly routines currently kept in the source directory
+					  {
+						CEL.sName[i]='\0';									// replace the '.o' file extension with '.asm'
+						cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " %s.asm", CEL.sName);
+					  }
+					else
+						cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " $(objdir)/%s", CEL.sName);
 				  }
 			  }
 		  }
 	  }
 
 	ce_gen_make_line(fp, FA_WRITE, &cp);
-	cp+=snprintf(cp, BUFF_S0, "\n\t$(GCC) $(CFLAGS) ");	// #TODO defaulting to C
-
-	if ((*sp)->cMain == CE_MAIN_T0)				// If an executable then find run0time libraries to link with
-	  {
-		cp+=snprintf(cp, BUFF_S0, "$^ -o $@");
-		for (int j=0; j <= iC; j++)				// link with any run-time libraries?
-			if ((spC+j)->iType == CE_RLIB_T0)
-			  {
-				ce_gen_make_line(fp, FA_ADD, &cp);
-				cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " -l%s", (spC+j)->sName);
-			  }
-	  }
+	if ((*sp)->cLang == 'A')										// assembly language so using the NASM assembler
+		cp+=snprintf(cp, BUFF_S0,
+					 "\n\t$(NASM) $(NASM_FLAGS) $< -o $@");			// actually only assembling the 1st dependency and ignoring the rest!
 	else
-		cp+=snprintf(cp, BUFF_S0, "-c $< -o $@");
+	  {
+		cp+=snprintf(cp, BUFF_S0, "\n\t$(GCC) $(CFLAGS) ");			// defaulting to C
+
+		if ((*sp)->cMain == CE_MAIN_T0)								// If an executable then find runtime libraries to link with
+		  {
+			cp+=snprintf(cp, BUFF_S0, "$^ -o $@");
+			for (int j=0; j <= iC; j++)								// link with any run-time libraries?
+				if ((spC+j)->iType == CE_RLIB_T0)
+				  {
+					ce_gen_make_line(fp, FA_ADD, &cp);
+					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " -l%s", (spC+j)->sName);
+				  }
+		  }
+		else
+			cp+=snprintf(cp, BUFF_S0, "-c $< -o $@");
+	  }
 
 	cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\n");
-	ce_gen_make_line(fp, FA_WRITE, &cp);		// write target and dependencies line
+	ce_gen_make_line(fp, FA_WRITE, &cp);							// write target and dependencies line
 
 error:
 	if (spC != NULL) free(spC);
@@ -390,7 +417,6 @@ int main(int argc, char **argv)
 	int iE = 0;				// count of modules for selected project
 	int iEmax = 50;
 
-
 	FILE *fpT = NULL,		// file pointer for template
 		 *fpN = NULL;		// file pointer for new makefile
 	char *cp;
@@ -402,7 +428,7 @@ int main(int argc, char **argv)
 	spCEL = (struct CEL_FIELDS*) &CEL;
 
 	CE.sProject[0]='\0';						// clear project to see if --project is picked up by ce_args
-	if (ce_args(argc, argv) < 0) goto error;
+	if (ce_args(argc, argv) < 0) goto error;	// process any optional arguments from when this program was run
 	if (CE.sProject[0] == '\0')					// no project name provided with --project argument so use current directory
 	  {
 		ut_check(getcwd(CE.sDir, sizeof(CE.sDir)), "getcwd");
@@ -411,39 +437,46 @@ int main(int argc, char **argv)
 		CE.sProject[i]='\0';
 	  }
 
-	ut_check((ios=cef_main(FA_INIT+FA_OPEN, 0)) == 0, // Initialise libgxtfa and open clice db
+	ut_check((ios=cef_main(FA_INIT+FA_OPEN, 0)) == 0, 				// Initialise libgxtfa and open clice db
 		"Open clice db error %d", ios);
 
 	sprintf(sBuff,
-			"%s/.makefile.template",
-			getenv("GXT_CODE_HOME"));			// open the clice makefile template
-	ut_check((fpT=fopen(sBuff, "r")) != NULL, "open template");
+			"%s/%s/.makefile.template",
+			getenv("GXT_CODE_HOME"),
+			CE.sProject);											// 1st look for a clice makefile template in the project directory
+	if ((fpT=fopen(sBuff, "r")) == NULL)
+	  {
+		sprintf(sBuff,
+				"%s/.makefile.template",
+				getenv("GXT_CODE_HOME"));							// 2nd look in the root code directory for a clice makefile template
+		ut_check((fpT=fopen(sBuff, "r")) != NULL, "open template");
+	  }
 
 	sprintf(sBuff,
 			"%s/%s/makefile",
 			getenv("GXT_CODE_HOME"),
-			CE.sProject);						// create new empty makefile for selected project
+			CE.sProject);												// create new empty makefile for selected project
 	ut_check((fpN=fopen(sBuff, "w")) != NULL, "open new makefile");
 
 	CE.bmField=CEF_TYPE_B0+CEF_NAME_B0+
 				CEF_LANG_B0+CEF_MAIN_B0+
-				CEF_SOURCE_B0;
+				CEF_SOURCE_B0;											// select which fields to read from the clice db
 	CEL.bmField=0;
 	CE.iType=CE_SYSF_T0;
 	ut_check(cef_main(FA_READ,"ce.project = % AND ce.type < % ORDER BY ce.type DESC, ce.name ASC") == FA_OK_IV0,
 					"read project");
 
-	while (fgets(sBuff, BUFF_S0, fpT) != NULL)		// read through template looking for clice markers '#~'
+	while (fgets(sBuff, BUFF_S0, fpT) != NULL)							// read through template looking for clice markers '#~'
 	  {
-		if (sBuff[0] != '#' || sBuff[1] != '~')		// non-marker lines to be written directly to generated file
+		if (sBuff[0] != '#' || sBuff[1] != '~')							// non-marker lines to be written directly to generated file
 		  {
 			ce_gen_make_line(fpN, FA_WRITE, &cp);
 			continue;
 		  }
 
-		if (memcmp(&sBuff[2], "bui", 3) == 0)		// build date stamp
+		if (memcmp(&sBuff[2], "bui", 3) == 0)							// build date stamp
 		  {
-			ut_date_now();							// #TODO improve date and time functions
+			ut_date_now();
 			snprintf(sBuff, BUFF_S0, "# built on %.2d%.2d%d at %.4d\n",
 					gxt_iDate[0]%100, (gxt_iDate[0]%10000)/100,
 					gxt_iDate[0]/10000, gxt_iTime[0]/100);
@@ -451,31 +484,40 @@ int main(int argc, char **argv)
 			continue;
 		  }
 
-		ut_check(cef_main(FA_RESET, 0) == FA_OK_IV0, "reset");	// reset prepare to step through project list again
+		ut_check(cef_main(FA_RESET, 0) == FA_OK_IV0, "reset");			// reset prepare to step through project list again
 
-		if (memcmp(&sBuff[2], "exe", 3) == 0)					// list project executables and object libraries
+		if (memcmp(&sBuff[2], "exe", 3) == 0)							// list project executables and object libraries
 		  {
 			cp = &sBuff[0]+1;
 			sBuff[0]='\t';
 
 			while(cef_main(FA_STEP, 0) == FA_OK_IV0)
 			  {
-				if (CE.iType == CE_PROG_T0 && CE.cMain == CE_MAIN_T0)			// main executable
-					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "%s ", CE.sName);
-				else if (CE.iType == CE_PROJ_T0 && CE.sSource[0] > '0')			// object library
+				if (CE.iType == CE_PROG_T0 && CE.cMain == CE_MAIN_T0)	// main executable
+				  {
+					ce_gen_make_line(fpN, FA_ADD, &cp);
+					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "%s", CE.sName);
+					if (CE.cLang == 'A') cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), ".bin");	// using a bin extension for assembly executables
+					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " ");
+				  }
+				else if (CE.iType == CE_PROJ_T0 && CE.sSource[0] > '0')	// object library
+				  {
+					ce_gen_make_line(fpN, FA_ADD, &cp);
 					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "$(objdir)/%s ", CE.sSource);
-
-				ce_gen_make_line(fpN, FA_ADD, &cp);
+				  }
 			  }
-			snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\n");			// output remainder of last line or a blank continuation
-			ce_gen_make_line(fpN, FA_WRITE, &cp);
+			if ((cp-&sBuff[1]) > 0)
+			  {
+				snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "\n");				// output remainder of last line
+				ce_gen_make_line(fpN, FA_WRITE, &cp);
+			  }
 		  }
-		else if (memcmp(&sBuff[2], "fun", 3) == 0)				// extract a list of project functions to compile
+		else if (memcmp(&sBuff[2], "fun", 3) == 0)						// extract a list of project functions to compile
 		  {
 			ut_check((spE = malloc(sizeof(struct CE_EXTRACT)*iEmax)) != NULL,
 						"malloc error");
 
-			while(cef_main(FA_STEP, 0) == FA_OK_IV0)
+			while (cef_main(FA_STEP, 0) == FA_OK_IV0)
 			  {
 				if (CE.iType == CE_PROG_T0 && CE.cLang != 'S')
 				  {

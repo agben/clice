@@ -5,7 +5,7 @@
 # Shell command variables
 SHELL = /bin/sh
 GCC = /usr/bin/gcc
-CFLAGS= -D$(GXT_DEBUG) -std=gnu11 -Wall -fmax-errors=5
+CFLAGS = -D$(GXT_DEBUG) -std=gnu11 -Wall -fmax-errors=5
 
 # Install paths according to GNU make standards
 prefix = /usr/local
