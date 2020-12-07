@@ -49,7 +49,7 @@ void ce_help(void)
 
 void ce_version(void)
   {
-	printf("clice - the Command-LIne Coding Ecosystem) v0.1\n");
+	printf("clice - the Command-LIne Coding Ecosystem) v0.2.2.5\n");
 	printf("        versioning = major.minor.feature-release.bugfix\n\n");
 	printf("Copyright (C) Andrew Bennington 2015-2017 <www.benningtons.net>\n");
 	printf("Licence GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n");
@@ -59,22 +59,21 @@ void ce_version(void)
 
 int ce_args(int argc, char **argv)
   {
-	static struct option long_options[] = { 		// valid arguments: name, has_arg(yes=1, no=0, opt=2), flag, val
+	static struct option long_options[] = { 						// valid arguments: name, has_arg(yes=1, no=0, opt=2), flag, val
 					{"help",	no_argument,		0,	0},			// 0	Keep this order for parsing after getopt_long
 					{"version",	no_argument,		0,	0},			// 1
 					{"project",	required_argument,	0,	0},			// 2
 					{0,			0,					0,	0}
 	};
-//					{'\0',		0,	'\0',	0}
 
 	int option_index = 0;
 	int	i;
 
 
-	while ((i=getopt_long(	argc,					//number of arguments
-							argv,					//argument values - an array of pointers to each argument
-							"",						//permitted short arguments  i.e. -v (none permitted)
-							long_options,			//permitted long arguments   i.e. --version
+	while ((i=getopt_long(	argc,						//number of arguments
+							argv,						//argument values - an array of pointers to each argument
+							"",							//permitted short arguments  i.e. -v (none permitted)
+							long_options,				//permitted long arguments   i.e. --version
 							&option_index)) != -1)
 	  {
 		if (i == '?' || i != 0)				// invalid arg or arg qualifier so abort

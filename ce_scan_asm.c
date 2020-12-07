@@ -276,12 +276,13 @@ int main(int argc, char **argv)
 	fp=NULL;
 
 	if (CE.sName[0] == '\0')		// No program label found so use the name of the source file
-		for (i=j=0; i < CE_NAME_S0; i++)
+	  {
+	  for (i=j=0; i < CE_NAME_S0; i++)
 			if (CE.sSource[j] != '.')
 				CE.sName[i]=CE.sSource[j++];
 			else
 				CE.sName[i]='\0';
-
+	  }
 	ce_scan_asm_out();
 
 error:

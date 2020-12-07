@@ -18,13 +18,18 @@ if [ -d "${GXT_CODE_HOME}/${CE_PROJECT}" ]
  then
 	cd "${GXT_CODE_HOME}/${CE_PROJECT}/"
 
-	"${EDITOR:-nano}" makefile
+	read -p "EDIT MAKEFILE? " YN
+	case $YN in
+	  [Yy])
+		"${EDITOR:-nano}" makefile
 
-	if [ -f makefile~ ]				# If created a new version, move the previous to the Backup folder
-	 then
-		mv makefile~ "${GXT_CODE_BACKUP}/${CE_PROJECT}_makefile"
+		if [ -f makefile~ ]				# If created a new version, move the previous to the Backup folder
+		 then
+			mv makefile~ "${GXT_CODE_BACKUP}/${CE_PROJECT}_makefile"
 #TODO Could keep several versions in Backup?
-	fi
+		fi
+		;;
+	esac
 
 	read -p "MAKE ALL? " YN
 	case $YN in

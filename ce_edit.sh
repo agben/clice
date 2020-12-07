@@ -30,17 +30,17 @@
 #						.i.e. partially type a name and press tab to complete it
 #
 # Notes:
-#	Assembly	-	As I'm currently writing assembly for an independent OS then all outputs are binary but held in the Obj folder
+#	Assembly	-	As I'm currently writing assembly for an independent OS then all outputs are binary and held in the source folder
 
 
-cd "$GXT_CODE_HOME"
+cd "$GXT_CODE_HOME"									# move to the clice coding home directory
 if [ $# -eq 0 ]
- then							# and stay there if nothing else entered
+ then												# and stay there if nothing else entered
 	return
 fi
 
-CE_FNAM=$1						# filename entered
-CE_PROJECT="$(echo ${CE_FNAM:0:2}|tr [a-z] [A-Z])"	# project prefix
+CE_FNAM=$1											# filename passed as 1st argument
+CE_PROJECT="$(echo ${CE_FNAM:0:2}|tr [a-z] [A-Z])"	# project prefix is the 1st 2 characters of the filename
 
 if [ ! -d "${CE_PROJECT}" ]
  then
@@ -48,9 +48,9 @@ if [ ! -d "${CE_PROJECT}" ]
     return
 fi
 
-cd "${CE_PROJECT}/"				# relocate to the project directory
+cd "${CE_PROJECT}/"									# relocate to the project directory
 if [ ${#CE_FNAM} -eq 2 ]
- then							# and stay there if nothing else entered
+ then												# and stay there if nothing else entered
 	return
 fi
 
@@ -79,17 +79,17 @@ case "$CE_LANG" in
  ;;
 esac
 
-CE_PROGN="${CE_FNAM%.*}"		# program name minus its extension
+CE_PROGN="${CE_FNAM%.*}"				# program name minus its extension
 
 read -p "EDIT (Y/T) " CE_EDD
 case $CE_EDD in
   [Yy])
-	"${EDITOR:-nano}" $CE_FNAM			# See /usr/share/nano for syntax highlighting rules
+	"${EDITOR:-nano}" $CE_FNAM			# Use prefered editor else default to nano if $EDITOR not defined
 
-	if [ -f "$CE_FNAM"~ ]				# If created a new version, move the previous to the Backup folder
-	 then
-		case "$CE_LANG" in
-		 ASM|HSM)						# assembly source and header files.
+	if [ -f "$CE_FNAM"~ ]				# Created a new version of the source file? (old version saved ending with ~)
+	 then								# 	some editors need configuring to create these backup files when changes have been made
+		 case "$CE_LANG" in				# scan new source file for changes to update clide db
+		 ASM|HSM)						# assembly source or header files.
 			ce_scan_asm $CE_FNAM		# Update clice with source code details
 		 ;;
 		 [CH])							# .c c programs or .h c library files
@@ -104,8 +104,15 @@ case $CE_EDD in
 		 ;;
 		esac
 
-		mv *~ "${GXT_CODE_BACKUP}/"			# using wildcard (*~) to keep folders tidy
-#TODO Could keep several versions in Backup?
+		for CE_FILE in *~; do			# move the previous version to the Backup folder
+										# using wildcard (*~) to keep folders tidy
+			mv ${CE_FILE} "${GXT_CODE_BACKUP}/${CE_FILE}$(date +%Y%m%d%H%M)"	#tagging each file with a date and time stamp
+		done																	# so all previous versions can be kept
+#TODO Need an variable to show how many backup files to keep
+	fi
+	if [ -f \#* ]
+	 then
+		mv \#*\# "${GXT_CODE_BACKUP}/"	# move any quit and unsaved edits (emacs) to keep folders tidy
 	fi
 	;;
   [Tt])
@@ -147,10 +154,9 @@ case $CE_CO in
 							# -f = output format. bin = flat binary file
 							# -w = warnings. I want to see all warnings
 							# -o = output file
-#			-M \
+							# -MD $CE_PROGN.ce = generate makefile dependencies
 		nasm \
 			-o $CE_ONAM \
-			-MD $CE_PROGN.ce \
 			-f bin \
 			-w+all	\
 			$CE_FNAM
@@ -161,12 +167,14 @@ case $CE_CO in
 							# -c = compile and assemble but don't link
 							# -D = debug option
 							# -std = standard of C applied - GNU 2011
+							# -fPIC = position independent code, needed if putting code into libraries
 							# -Wall = I want to see all warnings
 							# -o = output file
 		gcc \
 			-D$GXT_DEBUG \
 			-c	\
 			-std=gnu11 \
+			-fPIC	\
 			-Wall	\
 			$CE_FNAM	\
 			-o $CE_ONAM
