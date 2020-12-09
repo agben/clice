@@ -107,8 +107,17 @@ case $CE_EDD in
 		for CE_FILE in *~; do			# move the previous version to the Backup folder
 										# using wildcard (*~) to keep folders tidy
 			mv ${CE_FILE} "${GXT_CODE_BACKUP}/${CE_FILE}$(date +%Y%m%d%H%M)"	#tagging each file with a date and time stamp
+
+			i=0							# purge older versions - set number to keep with GXT_BACKUP_VERSIONS (default=10)
+			for CE_BACKUP in `ls -r ${GXT_CODE_BACKUP}/${CE_FILE}*`; do
+				let i=i+1
+				if [ $i -gt ${GXT_BACKUP_VERSIONS:-10} ]
+				 then
+					rm ${CE_BACKUP}
+				fi
+			done
+			
 		done																	# so all previous versions can be kept
-#TODO Need an variable to show how many backup files to keep
 	fi
 	if [ -f \#* ]
 	 then

@@ -7,10 +7,14 @@ alias edm='. ce_edit_make.sh'
 alias edp='. ce_edit_project.sh'
 #
 # Declare clice pathnames	--EDIT TO MATCH YOUR SETUP--
+#
 export GXT_CODE_HOME="${HOME}/Code"
 export GXT_CODE_BACKUP="${GXT_CODE_HOME}/Backup"
 export GXT_CODE_OBJECT="${GXT_CODE_HOME}/Obj"
 #
 # Initialise clice variables	--EDIT TO SET YOUR DEFAULT PREFERENCES--
+#
 export GXT_DEBUG="DEBUG=0"
+export GXT_BACKUP_VERSIONS=10
+export EDITOR='emacs'
 
