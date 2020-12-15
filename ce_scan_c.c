@@ -142,7 +142,6 @@ int main(int argc, char **argv)
 	sprintf(sBuff, "%.*s.ce", i, CE.sSource);
 
 	CE.cLang=toupper(CE.sSource[i+1]);			// #TODO - validate
-	CE.cMain=' ';
 	CE.cIgnore=' ';
 	CE.cLibrary=' ';
 	CE.cSpare=' ';
@@ -154,6 +153,7 @@ int main(int argc, char **argv)
 	if (CE.cLang == 'H')						// this is a header file
 	  {
 		CE.iType=CE_HEAD_T0;
+		CE.cMain=' ';
 		for (i = 0; i < CE_NAME_S0 &&			// get header name (without the file extension)
 						CE.sSource[i] != '\0' &&
 						CE.sSource[i] != '.'; i++)
@@ -188,12 +188,20 @@ int main(int argc, char **argv)
 					for (j = 0; j < CE_NAME_S0 &&
 							CE.sSource[j] != '\0' &&
 							CE.sSource[j] != '.'; j++)
-					CE.sName[j]=CE.sSource[j];					// #TODO warn and ignore names that are too long
+					  {
+						CE.sName[j]=CE.sSource[j];				// #TODO warn and ignore names that are too long
+					  }
 				  }
 				else
+				  {
+					CE.cMain=' ';
 					for (j=0; j < (CE_NAME_S0-1) &&
 									sBuff[j] != ' '; j++)		// otherwise copy the item name
+					  {
 						CE.sName[j]=sBuff[j];
+					  }
+				  }
+
 				CE.sName[j]='\0';								// null terminate string
 //				for (; j < CE_NAME_S0; j++) CE.sName[j]='\0';	// null fill remainder of string
 
