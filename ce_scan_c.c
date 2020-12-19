@@ -27,6 +27,26 @@
 #define	CE_HEADER_M0 40	// Max number of header files in one source file
 #define	CE_MODULE_M0 10	// Max number of function/headers written in one source file
 
+
+void ce_parse_name(char *cpSrc, char *cpDest)		// Extract function/header names from source file
+  {
+	int i = 1;
+	char *cpDest2 = cpDest;
+
+	for (;	i++ < CE_NAME_S0 &&						// extract name until invalid character or name is full
+			*cpSrc != '>' &&
+			*cpSrc != '\"' &&
+			*cpSrc != ' ' &&
+			*cpSrc != '\0' &&
+			*cpSrc != '\n' &&
+			*cpSrc != '.';		 cpSrc++)
+	  *cpDest++ = *cpSrc;
+
+	*cpDest='\0';									// null terminate name
+	if (i >= CE_NAME_S0) printf ("Warning: module name truncated to:%s\n", cpDest2);
+  };
+
+
 int main(int argc, char **argv)
   {
 	FILE *fp = 0;
@@ -111,19 +131,11 @@ int main(int argc, char **argv)
 		else if (memcmp(&sBuff[0],
 						"#include", 8) == 0)	// found a header file?
 		  {
-			for (i=8; sBuff[i] != '<' && sBuff[i] != '\n'; i++);
-			if (sBuff[i] == '<')				// extract header file name
-			  {
-				j=0;
-				for (i++;	sBuff[i] != '>' &&
-							sBuff[i] != '\n' &&
-							sBuff[i] != '.'; i++)
-					sHeader[iHeader][j++]=sBuff[i];
-				sHeader[iHeader][j]='\0';	 	// null terminate string
-//				for (; j < CE_NAME_S0; j++)
-//					sHeader[iHeader][j]='\0'; 	// null fill remainder of string
-				iHeader++;
-			  }
+			for (i=8; sBuff[i] != '<' &&		// included system header file
+					  sBuff[i] != '\"' &&		// included local header from the same directory as the source
+					  sBuff[i] != '\n'; i++);	// stop at end of line
+			if (sBuff[i] == '<' || sBuff[i] == '\"')			// extract header file name
+				ce_parse_name(&sBuff[i+1], &sHeader[iHeader++][0]);
 		  }
 	  }
 
@@ -154,12 +166,7 @@ int main(int argc, char **argv)
 	  {
 		CE.iType=CE_HEAD_T0;
 		CE.cMain=' ';
-		for (i = 0; i < CE_NAME_S0 &&			// get header name (without the file extension)
-						CE.sSource[i] != '\0' &&
-						CE.sSource[i] != '.'; i++)
-			CE.sName[i]=CE.sSource[i];
-		CE.sName[i]='\0';						// null terminate string
-//		for (; i < CE_NAME_S0; i++) CE.sName[i]='\0';	// null fill remainder of string
+		ce_parse_name(&CE.sSource[0], &CE.sName[0]);
 
 		ut_check(cef_main(FA_ADD, 0) == FA_OK_IV0, "h add CE");
 
@@ -185,25 +192,13 @@ int main(int argc, char **argv)
 				if (memcmp(sBuff, "main", 4) == 0)				// replace 'main' modules with the source filename
 				  {
 					CE.cMain=CE_MAIN_T0;						// Flag as a root program
-					for (j = 0; j < CE_NAME_S0 &&
-							CE.sSource[j] != '\0' &&
-							CE.sSource[j] != '.'; j++)
-					  {
-						CE.sName[j]=CE.sSource[j];				// #TODO warn and ignore names that are too long
-					  }
+					ce_parse_name(&CE.sSource[0], &CE.sName[0]);
 				  }
 				else
 				  {
 					CE.cMain=' ';
-					for (j=0; j < (CE_NAME_S0-1) &&
-									sBuff[j] != ' '; j++)		// otherwise copy the item name
-					  {
-						CE.sName[j]=sBuff[j];
-					  }
+					ce_parse_name(&sBuff[0], &CE.sName[0]);
 				  }
-
-				CE.sName[j]='\0';								// null terminate string
-//				for (; j < CE_NAME_S0; j++) CE.sName[j]='\0';	// null fill remainder of string
 
 				i+=8;											// skip function
 				for (; i < BUFF_S0 && sBuff[i] == ' '; i++);	// skip past following spaces
@@ -223,8 +218,6 @@ int main(int argc, char **argv)
 					i++;
 				  }
 				CE.sCode[j]='\0';			 					// null terminate string
-//				for (; j < CE_CODE_LINE_S0; j++)
-//							CE.sCode[j]='\0'; 					// null fill remainder of string
 
 				ut_check(cef_main(FA_ADD, 0) == FA_OK_IV0,
 							"f add CE");							// update clice db

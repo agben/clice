@@ -93,7 +93,7 @@ case $CE_EDD in
 			ce_scan_asm $CE_FNAM		# Update clice with source code details
 		 ;;
 		 [CH])							# .c c programs or .h c library files
-			ctags --c-kinds=f -x $CE_FNAM > $CE_PROGN.ce	# scan source code for C symbols
+			 ctags --c-kinds=f -x $CE_FNAM > $CE_PROGN.ce	# scan source code for C symbols
 			ce_scan_c $CE_FNAM			# Update clice to show new version created
 			rm $CE_PROGN.ce
 		 ;;
