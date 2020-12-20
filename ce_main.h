@@ -12,6 +12,7 @@
 //------------------------------clice utility function prototypes
 extern int	cef_main(int, char*);		// clice database handler
 extern int	ce_args(int, char**);		// parse clice command-line arguments
+extern void	ce_parse_name(char *, char*);	// parse source files to extract module names
 
 //------------------------------Identify field identifiers in the order of columns in the db table.
 					//	(order not essential but it makes generated SQL code easier to check)

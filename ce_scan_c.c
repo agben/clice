@@ -28,25 +28,6 @@
 #define	CE_MODULE_M0 10	// Max number of function/headers written in one source file
 
 
-void ce_parse_name(char *cpSrc, char *cpDest)		// Extract function/header names from source file
-  {
-	int i = 1;
-	char *cpDest2 = cpDest;
-
-	for (;	i++ < CE_NAME_S0 &&						// extract name until invalid character or name is full
-			*cpSrc != '>' &&
-			*cpSrc != '\"' &&
-			*cpSrc != ' ' &&
-			*cpSrc != '\0' &&
-			*cpSrc != '\n' &&
-			*cpSrc != '.';		 cpSrc++)
-	  *cpDest++ = *cpSrc;
-
-	*cpDest='\0';									// null terminate name
-	if (i >= CE_NAME_S0) printf ("Warning: module name truncated to:%s\n", cpDest2);
-  };
-
-
 int main(int argc, char **argv)
   {
 	FILE *fp = 0;
@@ -135,7 +116,7 @@ int main(int argc, char **argv)
 					  sBuff[i] != '\"' &&		// included local header from the same directory as the source
 					  sBuff[i] != '\n'; i++);	// stop at end of line
 			if (sBuff[i] == '<' || sBuff[i] == '\"')			// extract header file name
-				ce_parse_name(&sBuff[i+1], &sHeader[iHeader++][0]);
+				ce_parse_name(&sBuff[i+1], sHeader[iHeader++]);
 		  }
 	  }
 
@@ -166,7 +147,7 @@ int main(int argc, char **argv)
 	  {
 		CE.iType=CE_HEAD_T0;
 		CE.cMain=' ';
-		ce_parse_name(&CE.sSource[0], &CE.sName[0]);
+		ce_parse_name(CE.sSource, CE.sName);
 
 		ut_check(cef_main(FA_ADD, 0) == FA_OK_IV0, "h add CE");
 
@@ -192,12 +173,12 @@ int main(int argc, char **argv)
 				if (memcmp(sBuff, "main", 4) == 0)				// replace 'main' modules with the source filename
 				  {
 					CE.cMain=CE_MAIN_T0;						// Flag as a root program
-					ce_parse_name(&CE.sSource[0], &CE.sName[0]);
+					ce_parse_name(CE.sSource, CE.sName);
 				  }
 				else
 				  {
 					CE.cMain=' ';
-					ce_parse_name(&sBuff[0], &CE.sName[0]);
+					ce_parse_name(sBuff, CE.sName);
 				  }
 
 				i+=8;											// skip function

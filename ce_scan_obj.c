@@ -70,11 +70,7 @@ int main(int argc, char **argv)
 			if (memcmp(sBuff, "RELOCATION RECORDS FOR [.text]:", 31) == 0)
 			  {
 				iSection++;											// end of section 1 so preserve CE details that are needed later
-				for (i=0; i < CE_NAME_S0 &&
-							CE.sSource[i] != '\0' &&
-							CE.sSource[i] != '.'; i++)
-					sSource[i]=CE.sSource[i];						// keep source name for use in next section
-				sSource[i]='\0';									// null terminate string
+				ce_parse_name(CE.sSource, sSource);					// keep source name for use in next section
 			  }
 			else if (sBuff[0] == '0')								// a symbol definition?
 			  {
@@ -105,14 +101,9 @@ int main(int argc, char **argv)
 				  {
 					j=48;
 					if (memcmp(&sBuff[j], "main", 4) == 0)			// replace 'main' modules with the source filename
-						for (i = 0; i < CE_NAME_S0 &&
-									CE.sSource[i] != '\0' &&
-									CE.sSource[i] != '.'; i++)
-							CE.sName[i]=CE.sSource[i];
+						ce_parse_name(CE.sSource, CE.sName);
 					else
-						for (i=0; i < CE_NAME_S0 && sBuff[j] != '\n'; i++)	// sBuff will have a line feed before a terminating null
-							CE.sName[i]=sBuff[j++];
-					CE.sName[i]='\0';								// null terminate string
+						ce_parse_name(&sBuff[j], CE.sName);
 
 					if (iFunc < CE_MODULE_M0-1)
 						memcpy(sFunc[iFunc++], CE.sName, CE_NAME_S0);	// keep a list of written function names
@@ -171,30 +162,20 @@ int main(int argc, char **argv)
 					(sBuff[23] == ' ' &&
 					memcmp(&sBuff[25], "*UND*", 5) == 0))			// and those declared externally but referenced
 				  {
-					j=48;											// start position in objdump output of called module name
-					for (i=0; i < CE_NAME_S0 &&
-							sBuff[j] != '\n'; i++)					// sBuff will have a line feed before it terminating null
-						sModule[iModule][i]=sBuff[j++];
-					sModule[iModule][i]='\0';						// null terminate string
+					ce_parse_name(&sBuff[48], sModule[iModule]);
 					iModule++;
 				  }
 			  }
 		  }
 		else if (iSection == 2)										// Section 2 - .text relocation records - identify all function calls
 		  {															// CE data changed from here by FA_LINK calls
-			if (sBuff[0] == 0)
+			if (sBuff[0] == '\n')
 				break;												// blank line marks the end of the section
 			else if (memcmp(sBuff, "OFFSET", 6) == 0)
 				continue;											// skip column headers
 			else if (sBuff[0] == '0' && sBuff[35] != '.')
 			  {
-				j=35;												// start position in objdump output of called module name
-				for (i=0; i < CE_NAME_S0 &&
-							sBuff[j] != '\n' &&
-							sBuff[j] != '+' &&
-							sBuff[j] != '-'; i++)					// sBuff will have a line feed before it terminating null
-					CEL.sCalls[i]=sBuff[j++];
-				CEL.sCalls[i]='\0';									// null terminate string
+				ce_parse_name(&sBuff[35], CEL.sCalls);
 
 				for (i=0; i < iModule &&
 						strncmp(CEL.sCalls, sModule[i], CE_NAME_S0) != 0;
@@ -214,12 +195,7 @@ int main(int argc, char **argv)
 				if (memcmp(sBuff, "main(", 5) == 0)					// replace 'main' modules with the source filename
 					memcpy(CEL.sName, sSource, CE_NAME_S0);
 				else
-				  {
-					for (i=0; i < CE_NAME_S0 &&
-								sBuff[i] != '('; i++)				// update current module name
-						CEL.sName[i]=sBuff[i];
-					CEL.sName[i]='\0';								// null terminate string
-				  }
+					ce_parse_name(sBuff, CEL.sName);
 			  }
 		  }
 	  }

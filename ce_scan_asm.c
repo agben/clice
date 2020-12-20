@@ -246,8 +246,6 @@ int main(int argc, char **argv)
 								sBuff[i] != '\n'; i++)
 						sModule[iModule][j++]=sBuff[i];
 					sModule[iModule][j]='\0'; 			// null terminate string
-//					for (; j < CE_NAME_S0; j++)
-//						sModule[iModule][j]='\0'; 		// null fill remainder of string
 					if (sBuff[i] == '.' &&
 						sBuff[i+1] == 'h') iModule++;	// ignore all but .hsm header files
 				  }
@@ -264,8 +262,6 @@ int main(int argc, char **argv)
 					while (j < CE_NAME_S0 && sBuff[i] > ' ')
 						sModule[iModule][j++]=sBuff[i++];
 					sModule[iModule][j]='\0'; 			// null terminate string
-//					for (; j < CE_NAME_S0; j++)
-//						sModule[iModule][j]='\0'; 		// null fill remainder of string
 					iModule++;
 				  }
 			  }
