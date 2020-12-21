@@ -122,7 +122,7 @@ error:
 //		where iCount = count of modules to list
 //--------------------------------------------------------------
 
-#define	CE_MOD_LIST_S0	(CE_NAME_S0+20)		// width of module list
+#define	CE_MOD_LIST_S0	(CE_NAME_S0+25)		// width of module list
 #define CE_DISP_M0	3						// Header lines in a module display
 #define CE_MOD_MENU_M0	7					// enties in the module memory
 
@@ -350,17 +350,21 @@ void ce_clice_module(int iCount)
 				  }
 
 				cpList[iHits]=NULL;					// mark end of search results list
-				iLen+=3;							// allow this many spaces between name and type in the list
 
-				for (i=0; i < iHits; i++)			// check if each linked module exists in clice db
+				for (i=0; i < iHits; i++)						// check if each linked module exists in clice db
 				  {
 					for (j=0; cp2[(i*CE_MOD_LIST_S0)+j] > ' '; j++)
-							CE.sName[j]=cp2[(i*CE_MOD_LIST_S0)+j];
-					CE.sName[j]='\0';				// extract item name and null terminate
+					  {
+						CE.sName[j]=cp2[(i*CE_MOD_LIST_S0)+j];
+					  }
+					CE.sName[j]='\0';							// extract item name and null terminate
 
-					for (j=iLen; cp2[(i*CE_MOD_LIST_S0)+j] != '\0'; j++)
-					cp2[(i*CE_MOD_LIST_S0)+j]=
-						cp2[(i*CE_MOD_LIST_S0)+j+(CE_NAME_S0-iLen)];	// reduce blank space in output list
+					int k=iLen;
+					for (j=CE_NAME_S0; cp2[(i*CE_MOD_LIST_S0)+j] != '\0'; j++)
+					  {											// reduce blank space in output list
+						cp2[(i*CE_MOD_LIST_S0)+k++]=cp2[(i*CE_MOD_LIST_S0)+j];
+					  }
+					cp2[(i*CE_MOD_LIST_S0)+k]='\0';
 
 					CE.bmField=CEF_ID_B0;			// See which called modules exist in clice
 					CEL.bmField=0;
