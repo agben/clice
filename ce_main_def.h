@@ -75,16 +75,13 @@ struct fa_sql_table CET[CE_TABLE_M0] =		//Declare the tables used in ce_main.db
 struct fa_sql_db CEB =				//Declare database details for clice_main.db
   {	// db path		db name			  Tables	max columns		max keys	LUN	table defs
 	"/var/local/",	"clice_main.db",	2,		CE_FIELD_M0,	CE_KEY_M0,	0,	&CET[0],
-//	key scripts
-		{"ce.id = %",				// 0
-		 "ce.name = %",				// 1
-		 "cl.id = %",				// 2
+//	key scripts of the most commonly used DB queries
+		{"ce.id = %",						// 0
+		 "ce.name = %",						// 1
+		 "cl.id = %",						// 2
 		 "cl.name = % AND cl.time <> %",	// 3
-		 " ",						// 4	select all links of type 'cl.rel' from module 'cl.name'
+		 "ce.name = % AND ce.type = %",		// 4
 		 "ce.name LIKE % AND ce.type = % ORDER BY ce.name ASC",	// 5	select all matching modules of specified type (program. library, etc...)
-		 " "}						// 6	select all links of type 'cl.rel' to module 'cl.calls'
+		 " "}								// 6	select all links of type 'cl.rel' to module 'cl.calls'
   };
 #endif
-
-//		 "cl.name = % AND cl.rel = % ORDER BY cl.calls ASC",	// 4	select all links of type 'cl.rel' from module 'cl.name'
-//		 "cl.calls = % AND cl.rel = % ORDER BY cl.name ASC"}	// 6	select all links of type 'cl.rel' to module 'cl.calls'

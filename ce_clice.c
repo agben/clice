@@ -346,7 +346,7 @@ void ce_clice_module(int iCount)
 					j=strnlen(cp, CE_NAME_S0);
 					if (j > iLen) iLen=j;			// check if this is the longest name?
 
-					ip2[iHits++]=0;					// Will determine if each called item exists in clice later
+					ip2[iHits++]=i;					// Will determine if each called item exists in clice later
 				  }
 
 				cpList[iHits]=NULL;					// mark end of search results list
@@ -358,6 +358,7 @@ void ce_clice_module(int iCount)
 						CE.sName[j]=cp2[(i*CE_MOD_LIST_S0)+j];
 					  }
 					CE.sName[j]='\0';							// extract item name and null terminate
+					CE.iType=ip2[i];
 
 					int k=iLen;
 					for (j=CE_NAME_S0; cp2[(i*CE_MOD_LIST_S0)+j] != '\0'; j++)
@@ -366,20 +367,24 @@ void ce_clice_module(int iCount)
 					  }
 					cp2[(i*CE_MOD_LIST_S0)+k]='\0';
 
-					CE.bmField=CEF_ID_B0;			// See which called modules exist in clice
+					CE.bmField=CEF_ID_B0;						// See which called modules exist in clice
 					CEL.bmField=0;
-					ut_check(cef_main(FA_READ+FA_KEY1,		// #TODO should read by name + type
-										0) == FA_OK_IV0,	// prepare a select for selected item
-							"Read key1");			// jump to error: if SQL prepare fails.
+					ut_check(cef_main(FA_READ+FA_KEY4,			// look for name + type matches
+										0) == FA_OK_IV0,		// prepare a select for selected item
+							"Read key4");						// jump to error: if SQL prepare fails.
 
+																/* Originally Clice was only going to contain locally created content but it now also includes
+																	system headers and functions. But still worth keeping this to check for any links to
+																	unknown modules */
 					if (cef_main(FA_STEP,0) == FA_OK_IV0)
 					  {
-						ip2[i]=CE.iNo;				// module exists in clice db so one of mine and not a system module
+						ip2[i]=CE.iNo;							// module exists in clice db so one of mine and not a system module
 						iMyHits++;
 					  }
-					else							// Mark module as unknown in clice by inserting a ! marker
+					else										// Mark module as unknown in clice by inserting a ! marker
 					  {
-						cp2[((i+1)*CE_MOD_LIST_S0)-1]='\0';	// ensure null termination of string
+						ip2[i]=0;
+						cp2[((i+1)*CE_MOD_LIST_S0)-1]='\0';		// ensure null termination of string
 						for(j=CE_MOD_LIST_S0-2; j > 0; j--)
 							cp2[(i*CE_MOD_LIST_S0)+j]=cp2[(i*CE_MOD_LIST_S0)+j-1];
 						cp2[i*CE_MOD_LIST_S0]='!';
