@@ -252,7 +252,7 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 			CE_NAME_S0);					// start by checking everything linked to the passed program
 	spC->iType=(*sp)->iType;
 
-	for (int j=0; j <= iC; j++)				// build a recursive list of called modules
+	for (int j=0; j == 0 || j < iC; j++)				// build a recursive list of called modules
 	  {
 		memcpy(	CEL.sName,
 				(spC+j)->sName,
@@ -262,9 +262,14 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 				"read");
 
 		while(cef_main(FA_STEP, 0) == FA_OK_IV0)
-			if (strncmp(CEL.sCalls, (*sp)->sName, CE_NAME_S0) != 0)		// ignore any recursive calls to same function
+		  {
+			if (strncmp(CEL.sCalls, (*sp)->sName, CE_NAME_S0) != 0 ||
+					CEL.iCtype != (*sp)->iType)		// ignore any recursive calls to same module
+			  {
 				ut_check(ce_gen_make_add(&spC, &iC, &iCmax, CEL.sCalls, CEL.iCtype) >= 0,
 						"add");
+			  }
+		  }
 		if (j == 0) iDirect=iC;					// end of direct links, all after iDirect are recursive
 	  }
 
@@ -273,7 +278,7 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 	  {
 		CE.bmField=0;
 		CEL.bmField=CEF_LINK_CALLS_B0;
-		for (int j=0; j <= iC; j++)				// add any run-time libraries to the list
+		for (int j=0; j < iC; j++)				// add any run-time libraries to the list
 		  {
 			if ((spC+j)->iType == CE_SYSH_T0)	// run-time libraries are associated with system headers in <project>.clice
 			  {
@@ -385,12 +390,15 @@ void ce_gen_make_out(struct CE_EXTRACT **sp, FILE *fp)
 		if ((*sp)->cMain == CE_MAIN_T0)								// If an executable then find runtime libraries to link with
 		  {
 			cp+=snprintf(cp, BUFF_S0, "$^ -o $@");
-			for (int j=0; j <= iC; j++)								// link with any run-time libraries?
-				if ((spC+j)->iType == CE_RLIB_T0)
+//			for (int j=0; j <= iC; j++)								// link with any run-time libraries?
+			for (int j=0; j < iC; j++)								// link with any run-time libraries?
+			  {
+			  if ((spC+j)->iType == CE_RLIB_T0)
 				  {
 					ce_gen_make_line(fp, FA_ADD, &cp);
 					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), " -l%s", (spC+j)->sName);
 				  }
+			  }
 		  }
 		else
 			cp+=snprintf(cp, BUFF_S0, "-c $< -o $@");
@@ -544,7 +552,9 @@ int main(int argc, char **argv)
 			  {
 				if (CE.iType == CE_PROJ_T0) continue;
 				if (CE.iType == CE_HEAD_T0)
+				  {
 					cp+=snprintf(cp, BUFF_S0-(cp-&sBuff[0]), "$(includedir)/%s.%c ", CE.sName, tolower(CE.cLang));
+				  }
 				else if (CE.cLang == 'S')
 				  {
 					if (strstr(CE.sName, "complete") > 0)	// script names including 'complete' assumed to be bash completion
