@@ -76,12 +76,12 @@ struct fa_sql_db CEB =				//Declare database details for clice_main.db
   {	// db path		db name			  Tables	max columns		max keys	LUN	table defs
 	"/var/local/",	"clice_main.db",	2,		CE_FIELD_M0,	CE_KEY_M0,	0,	&CET[0],
 //	key scripts of the most commonly used DB queries
-		{"ce.id = %",						// 0
-		 "ce.name = %",						// 1
-		 "cl.id = %",						// 2
-		 "cl.name = % AND cl.time <> %",	// 3
-		 "ce.name = % AND ce.type = %",		// 4
-		 "ce.name LIKE % AND ce.type = % ORDER BY ce.name ASC",	// 5	select all matching modules of specified type (program. library, etc...)
-		 " "}								// 6	select all links of type 'cl.rel' to module 'cl.calls'
+		{"ce.id = %",											// 0 - matching id
+		 "ce.name = %",											// 1 - matching name
+		 "cl.id = %",											// 2 - matching link id
+		 "cl.name = % AND cl.time <> %",						// 3 - matching link name but with a different time
+		 "ce.name = % AND ce.type = %",							// 4 - matching name and type
+		 "ce.name LIKE % AND ce.type = % ORDER BY ce.name ASC",	// 5 - matching modules of specified type (program. library, etc...)
+		 " "}													// 6	select all links of type 'cl.rel' to module 'cl.calls'
   };
 #endif

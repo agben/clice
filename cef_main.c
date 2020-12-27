@@ -80,12 +80,10 @@ int cef_main(int bmAction, char *cpSQL)
 
 			CE.bmField=CEF_ID_B0;						// Check if clice knows about this module?
 			CEL.bmField=0;
-			if (cef_main(FA_READ+FA_STEP,
-					"ce.name = % AND ce.type = %") != FA_OK_IV0)
+			  if (cef_main(FA_READ+FA_KEY4+FA_STEP, 0) != FA_OK_IV0)	// Key4 - ce.name = % AND ce.type = %
 			  {
 				CE.iType+=2;							// else try finding it as a system funcion/header
-				if (cef_main(FA_READ+FA_STEP,
-					"ce.name = % AND ce.type = %") != FA_OK_IV0)
+				if (cef_main(FA_READ+FA_KEY4+FA_STEP, 0) != FA_OK_IV0)	// Key4 - ce.name = % AND ce.type = %
 				  {
 					printf("*NEW* ");					// unknown on clice so flag as new
 
@@ -188,7 +186,7 @@ int cef_main(int bmAction, char *cpSQL)
 
 							CE.bmField=FA_ALL_COLS_B0;
 							CEL.bmField=0;
-							cef_main(FA_DELETE, "ce.name = % AND ce.type = %");		// status not checked as may not exist
+							cef_main(FA_DELETE+FA_KEY4, 0);		// status not checked as may not exist
 						  }
 					  }
 				  }
@@ -199,8 +197,7 @@ int cef_main(int bmAction, char *cpSQL)
 	  {
 		CE.bmField=CEF_ID_B0;									// only need to read ID to confirm if this module exists in CE
 		CEL.bmField=0;
-		if (cef_main(FA_READ+FA_STEP,
-			"ce.name = % AND ce.type = %") == FA_NODATA_IV0)	// module not found so create a new CE module
+		if (cef_main(FA_READ+FA_KEY4+FA_STEP, 0) == FA_NODATA_IV0)	// module not found so create a new CE module
 		  {
 			if (CE.iType == CE_HEAD_T0)
 				printf("CE: New header file added - %s\n", CE.sName);
@@ -208,8 +205,7 @@ int cef_main(int bmAction, char *cpSQL)
 				printf("CE: New program file added - %s\n", CE.sName);
 
 			CE.iType+=2;										// check if this module has been setup as a system function/header?
-			if (cef_main(FA_READ+FA_STEP,
-				"ce.name = % AND ce.type = %") == FA_OK_IV0)	// it has, so needs converting to a local function/header
+			if (cef_main(FA_READ+FA_KEY4+FA_STEP, 0) == FA_OK_IV0)	// it has, so needs converting to a local function/header
 			  {
 				char *cp;
 				ut_check((cp = malloc(40)) != NULL, "memory error");
