@@ -20,7 +20,7 @@
 #include <ut_date.h>	// gxt date functions
 #include <ut_error.h>	// error and debug macros
 
-#define	BUFF_S0 80					// max objdump line width read from file
+#define	BUFF_S0 100					// max objdump line width read from file
 #define	CE_SCAN_MODULE_M0 50		// max modules one program can link to
 #define	CE_MODULE_M0 10				// max number of functions written within one source file
 
