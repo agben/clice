@@ -1,5 +1,5 @@
 -- ***************************************************************************
---	clice_main.sql - Script for creating the Command Line Coding Ecosystem database
+--	Script for creating the Command Line Coding Ecosystem database
 --	Usage:-
 --		sqlite3 /var/local/clice_main.db < ce_main.sql
 -- ***************************************************************************
@@ -8,7 +8,7 @@
 
 CREATE TABLE ce_main (
 	id		INTEGER PRIMARY KEY  NOT NULL,
-	name	CHARACTER(30),
+	name	CHARACTER(60),
 	type	INTEGER,
 	main	CHARACTER(1),
 	ignore	CHARACTER(1),
@@ -30,8 +30,8 @@ CREATE TABLE ce_main (
 
 CREATE TABLE ce_link (
 	id		INTEGER PRIMARY KEY NOT NULL,
-	name	CHARACTER(30),
-	calls	CHARACTER(30),
+	name	CHARACTER(60),
+	calls	CHARACTER(60),
 	ntype	INTEGER,
 	ctype	INTEGER,
 	code	CHARACTER(60),

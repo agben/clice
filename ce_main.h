@@ -41,7 +41,7 @@ extern void	ce_parse_name(char *, char*);	// parse source files to extract modul
 #define CEF_LAST_MOD_B0		(CEF_MDATE_B0 +	CEF_MTIME_B0)
 
 //------------------------------Identify the size of any blob/string fields
-#define	CE_NAME_S0		30
+#define	CE_NAME_S0		60
 #define	CE_DIR_S0		30
 #define	CE_SOURCE_S0	30
 #define	CE_PROJECT_S0	3
