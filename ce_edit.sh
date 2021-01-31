@@ -70,6 +70,8 @@ case "$CE_LANG" in
  ;;
  [CH])			# C. The .c for program code and the .h for included library files
  ;;
+ SQL)			# SQL scripts
+ ;;
  TXT)			# text files. Usually documentation notes
  ;;
  SH)			# Shell scripts.
@@ -97,10 +99,12 @@ case $CE_EDD in
 			ce_scan_c $CE_FNAM			# Update clice to show new version created
 			rm $CE_PROGN.ce
 		 ;;
-		 TXT)							# ignore text files
-		 ;;
 		 SH)							# Shell scripts.
 			ce_scan_bash $CE_FNAM		# Update clice to show new version created
+		 ;;
+		 SQL)							# ignore SQl scripts
+		 ;;
+		 TXT)							# ignore text files
 		 ;;
 		esac
 
