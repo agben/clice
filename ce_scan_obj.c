@@ -167,10 +167,11 @@ int main(int argc, char **argv)
 				  }
 			  }
 		  }
-		else if (iSection == 2)										// Section 2 - .text relocation records - identify all function calls
+		else if (iSection == 2 ||									// Section 2 - .text relocation records - identify all function calls
+				 iSection == 4)										// Section 4 - .data.rel records - identify all function calls
 		  {															// CE data changed from here by FA_LINK calls
 			if (sBuff[0] == '\n')
-				break;												// blank line marks the end of the section
+				iSection++;											// blank line marks the end of the section
 			else if (memcmp(sBuff, "OFFSET", 6) == 0)
 				continue;											// skip column headers
 			else if (sBuff[0] == '0' && sBuff[35] != '.')
@@ -198,6 +199,12 @@ int main(int argc, char **argv)
 					ce_parse_name(sBuff, CEL.sName);
 			  }
 		  }
+		else if (iSection == 3)										// Section 3 - probably nothing more but check for any indirectly called functions
+		  {
+			if (memcmp(sBuff, "RELOCATION RECORDS FOR [.data.rel]:", 35) == 0)
+			  iSection++;											// found a relocatable data section so scan for functions
+		  }
+		
 	  }
 
 	for (i=0; i < iFunc; i++)
